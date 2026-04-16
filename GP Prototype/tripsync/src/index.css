@@ -140,6 +140,10 @@ body {
   animation: bookmark-pop 220ms ease;
 }
 
+.map-user-dot {
+  animation: map-user-ping 1.8s ease-in-out infinite;
+}
+
 @keyframes route-fade-in {
   from {
     opacity: 0;
@@ -186,5 +190,17 @@ body {
   }
   100% {
     transform: scale(1);
+  }
+}
+
+@keyframes map-user-ping {
+  0% {
+    box-shadow: 0 0 0 0 rgba(0, 229, 160, 0.35);
+  }
+  70% {
+    box-shadow: 0 0 0 12px rgba(0, 229, 160, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(0, 229, 160, 0);
   }
 }

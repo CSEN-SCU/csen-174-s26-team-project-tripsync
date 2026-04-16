@@ -1,16 +1,38 @@
 import { useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { resetDemo } from '../lib/api'
 
 const features = [
-  'Set your interests once',
-  'Get voice alerts as you walk',
-  'No map. No searching. Just explore.',
+  {
+    title: 'Who it is for',
+    body: 'People exploring a city on foot who want local-quality suggestions without staring at maps.',
+  },
+  {
+    title: 'Problem it solves',
+    body: 'Tourist apps make you search constantly. TripSync listens to your preferences and brings places to you.',
+  },
+  {
+    title: 'How to use it',
+    body: 'Pick interests, start walking, then save spots you want to revisit. Reset between demo visitors.',
+  },
 ]
 
 function IntroScreen() {
   const navigate = useNavigate()
+  const [isResetting, setIsResetting] = useState(false)
 
   const goToOnboarding = () => {
     navigate('/onboarding')
+  }
+
+  const handleResetDemo = async () => {
+    try {
+      setIsResetting(true)
+      await resetDemo()
+      navigate('/', { replace: true })
+    } finally {
+      setIsResetting(false)
+    }
   }
 
   return (
@@ -38,7 +60,7 @@ function IntroScreen() {
 
       <section style={{ maxWidth: '680px' }}>
         <h1 style={{ fontSize: '48px', fontWeight: 700, lineHeight: 1.05, marginBottom: '16px' }}>
-          Your city finds you.
+          TripSync: local suggestions while you walk.
         </h1>
         <p
           style={{
@@ -49,24 +71,28 @@ function IntroScreen() {
             maxWidth: '60ch',
           }}
         >
-          Tell us what you love. Walk around. We&apos;ll ping you when something worth stopping for is
-          nearby.
+          A location-aware travel companion that recommends nearby places with voice and visual prompts, so a
+          first-time user can explore instantly with zero setup confusion.
         </p>
 
         <div style={{ display: 'grid', gap: '12px' }}>
           {features.map((feature) => (
-            <div key={feature} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div key={feature.title} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
               <span
                 aria-hidden="true"
                 style={{
                   color: 'var(--accent)',
                   fontSize: '14px',
                   lineHeight: 1,
+                  marginTop: '7px',
                 }}
               >
                 ●
               </span>
-              <p style={{ fontSize: '16px', color: 'var(--text-primary)' }}>{feature}</p>
+              <div>
+                <p style={{ fontSize: '15px', fontWeight: 700, marginBottom: '4px' }}>{feature.title}</p>
+                <p style={{ fontSize: '15px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>{feature.body}</p>
+              </div>
             </div>
           ))}
         </div>
@@ -76,8 +102,8 @@ function IntroScreen() {
         <button type="button" className="btn-primary" onClick={goToOnboarding}>
           Start Exploring
         </button>
-        <button type="button" className="btn-ghost" onClick={goToOnboarding}>
-          Reset Demo
+        <button type="button" className="btn-ghost" onClick={handleResetDemo} disabled={isResetting}>
+          {isResetting ? 'Resetting...' : 'Reset Demo'}
         </button>
       </section>
     </main>

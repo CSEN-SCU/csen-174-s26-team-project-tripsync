@@ -1,59 +1,39 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { fetchSuggestions, getSessionId, toggleSavedPlace } from '../lib/api'
 
-const FAKE_PLACES = [
-  {
-    id: 1,
-    name: 'Tartine Manufactory',
-    type: 'Bakery',
-    distance: 80,
-    why: 'A legendary SF bakery - the country loaf alone is worth the detour.',
-    saved: false,
-  },
-  {
-    id: 2,
-    name: 'Adobe Books',
-    type: 'Bookshop',
-    distance: 140,
-    why: 'Dusty, chaotic, and completely wonderful. Local institution.',
-    saved: false,
-  },
-  {
-    id: 3,
-    name: 'Dolores Park',
-    type: 'Park',
-    distance: 210,
-    why: 'The social heart of the Mission. Great city views.',
-    saved: false,
-  },
-  {
-    id: 4,
-    name: 'Bi-Rite Creamery',
-    type: 'Ice Cream',
-    distance: 260,
-    why: 'Salted caramel ice cream that people genuinely travel for.',
-    saved: false,
-  },
-  {
-    id: 5,
-    name: '996 Mural',
-    type: 'Street Art',
-    distance: 310,
-    why: 'One of the most photographed murals in the city.',
-    saved: false,
-  },
-]
+const getMapPosition = (distanceMeters, bearingDeg) => {
+  const radius = Math.min(distanceMeters / 8, 38)
+  const radians = ((bearingDeg - 90) * Math.PI) / 180
+  return {
+    x: Math.round((50 + Math.cos(radians) * radius) * 10) / 10,
+    y: Math.round((50 + Math.sin(radians) * radius) * 10) / 10,
+  }
+}
 
 function WalkingScreen() {
+  const location = useLocation()
   const navigate = useNavigate()
-  const [places, setPlaces] = useState(FAKE_PLACES)
+  const [places, setPlaces] = useState([])
+  const sessionId = location.state?.sessionId || getSessionId()
+  const [alertMode, setAlertMode] = useState('voice-visual')
   const [isMuted, setIsMuted] = useState(false)
   const [showToast, setShowToast] = useState(false)
   const [showHero, setShowHero] = useState(false)
   const [poppingBookmarkIds, setPoppingBookmarkIds] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
+  const [userLocation, setUserLocation] = useState(null)
+  const [locationError, setLocationError] = useState('')
+  const [isLocating, setIsLocating] = useState(true)
+  const [voiceError, setVoiceError] = useState('')
 
-  const heroPlace = places[0]
-  const nearbyPlaces = useMemo(() => places.slice(1, 5), [places])
+  const heroPlace = places[0] || null
+  const placeView = useMemo(() => places, [places])
+
+  const activeHeroPlace = placeView[0] || heroPlace
+  const nearbyPlaces = useMemo(() => placeView.slice(1, 5), [placeView])
+  const mapLegendPlaces = useMemo(() => placeView.slice(0, 3), [placeView])
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
@@ -75,11 +55,117 @@ function WalkingScreen() {
     }
   }, [])
 
-  const toggleSaved = (placeId) => {
-    setPoppingBookmarkIds((current) => [...new Set([...current, placeId])])
-    setPlaces((current) =>
-      current.map((place) => (place.id === placeId ? { ...place, saved: !place.saved } : place)),
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      setLocationError('Geolocation is not supported in this browser.')
+      setIsLocating(false)
+      return
+    }
+
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        setUserLocation({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        })
+        setLocationError('')
+        setIsLocating(false)
+      },
+      (error) => {
+        setIsLocating(false)
+        if (error.code === 1) {
+          setLocationError('Location access denied. Allow location to personalize nearby places.')
+        } else {
+          setLocationError('Unable to get live location. Showing approximate nearby data.')
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 10000,
+        timeout: 8000,
+      },
     )
+
+    return () => {
+      navigator.geolocation.clearWatch(watchId)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!sessionId) {
+      navigate('/onboarding', { replace: true })
+      return
+    }
+
+    let isCancelled = false
+
+    const loadSuggestions = async () => {
+      try {
+        setIsLoading(true)
+        const payload = await fetchSuggestions(sessionId, userLocation || undefined)
+        if (isCancelled) return
+        const normalized = payload.places.map((place) => {
+          const distance = Math.round(Number(place.distance) || 0)
+          const bearing = Number.isFinite(Number(place.bearing)) ? Number(place.bearing) : 0
+          const map = place.map || getMapPosition(distance, bearing)
+          return {
+            ...place,
+            distance,
+            map,
+          }
+        })
+        setPlaces(normalized)
+        setAlertMode(payload.session?.alertMode || 'voice-visual')
+        setLoadError('')
+      } catch (error) {
+        if (isCancelled) return
+        setLoadError('Could not load nearby places. Start a new session from onboarding.')
+      } finally {
+        if (!isCancelled) setIsLoading(false)
+      }
+    }
+
+    loadSuggestions()
+
+    return () => {
+      isCancelled = true
+    }
+  }, [navigate, sessionId, userLocation])
+
+  useEffect(() => {
+    if (!activeHeroPlace || isMuted || alertMode === 'visual-only') return
+
+    if (!window.speechSynthesis || typeof window.SpeechSynthesisUtterance !== 'function') {
+      setVoiceError('Voice alerts are unavailable in this browser.')
+      return
+    }
+
+    setVoiceError('')
+    const utterance = new window.SpeechSynthesisUtterance(
+      `${activeHeroPlace.name}. ${activeHeroPlace.why}`,
+    )
+    utterance.rate = 1
+    utterance.pitch = 1
+
+    window.speechSynthesis.cancel()
+    window.speechSynthesis.speak(utterance)
+  }, [activeHeroPlace, alertMode, isMuted])
+
+  const toggleSaved = async (placeId) => {
+    if (!sessionId) return
+    setPoppingBookmarkIds((current) => [...new Set([...current, placeId])])
+
+    const nextPlaces = places.map((place) =>
+      place.id === placeId ? { ...place, saved: !place.saved } : place,
+    )
+    setPlaces(nextPlaces)
+
+    try {
+      const placeToSave = nextPlaces.find((place) => place.id === placeId)
+      await toggleSavedPlace({ sessionId, place: placeToSave })
+    } catch (error) {
+      setPlaces(places)
+    }
 
     setTimeout(() => {
       setPoppingBookmarkIds((current) => current.filter((id) => id !== placeId))
@@ -108,7 +194,14 @@ function WalkingScreen() {
 
           <button
             type="button"
-            onClick={() => setIsMuted((current) => !current)}
+            onClick={() =>
+              setIsMuted((current) => {
+                if (!current && window.speechSynthesis) {
+                  window.speechSynthesis.cancel()
+                }
+                return !current
+              })
+            }
             aria-label={isMuted ? 'Unmute voice alerts' : 'Mute voice alerts'}
             style={{
               borderRadius: '10px',
@@ -125,7 +218,25 @@ function WalkingScreen() {
           </button>
         </div>
       </header>
+      <p style={{ color: 'var(--text-secondary)', fontSize: '12px', marginTop: '-8px' }}>
+        {alertMode === 'visual-only' ? 'Visual mode enabled from onboarding.' : isMuted ? 'Voice alerts muted.' : 'Voice alerts live.'}
+      </p>
+      {voiceError ? <p style={{ color: '#ffb6b6', fontSize: '12px' }}>{voiceError}</p> : null}
 
+      {isLoading ? (
+        <section className="card">
+          <p style={{ color: 'var(--text-secondary)' }}>Loading your walk feed...</p>
+        </section>
+      ) : null}
+
+      {loadError ? (
+        <section className="card" style={{ borderColor: '#754545' }}>
+          <p style={{ color: '#ff9f9f' }}>{loadError}</p>
+        </section>
+      ) : null}
+
+      {activeHeroPlace ? (
+        <>
       <section
         className="card"
         style={{
@@ -139,9 +250,9 @@ function WalkingScreen() {
       >
         <button
           type="button"
-          onClick={() => toggleSaved(heroPlace.id)}
-          aria-label={heroPlace.saved ? 'Remove from saved places' : 'Save place'}
-          className={poppingBookmarkIds.includes(heroPlace.id) ? 'bookmark-pop' : ''}
+          onClick={() => toggleSaved(activeHeroPlace.id)}
+          aria-label={activeHeroPlace.saved ? 'Remove from saved places' : 'Save place'}
+          className={poppingBookmarkIds.includes(activeHeroPlace.id) ? 'bookmark-pop' : ''}
           style={{
             position: 'absolute',
             top: '14px',
@@ -151,27 +262,91 @@ function WalkingScreen() {
             borderRadius: '10px',
             border: '1px solid var(--border-color)',
             background: 'var(--bg-primary)',
-            color: heroPlace.saved ? 'var(--accent)' : 'var(--text-secondary)',
+            color: activeHeroPlace.saved ? 'var(--accent)' : 'var(--text-secondary)',
             cursor: 'pointer',
             fontSize: '18px',
           }}
         >
-          {heroPlace.saved ? '★' : '☆'}
+          {activeHeroPlace.saved ? '★' : '☆'}
         </button>
 
         <h1 style={{ fontSize: '28px', fontWeight: 700, lineHeight: 1.15, marginBottom: '14px', paddingRight: '44px' }}>
-          {heroPlace.name}
+          {activeHeroPlace.name}
         </h1>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
-          <span className="pill">{heroPlace.type}</span>
+          <span className="pill">{activeHeroPlace.type}</span>
           <span className="pill" style={{ color: 'var(--accent)', borderColor: 'var(--accent)' }}>
-            {heroPlace.distance}m away
+            {activeHeroPlace.distance}m away
           </span>
         </div>
 
         <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '6px' }}>Why you&apos;ll love it</p>
-        <p style={{ color: 'var(--text-primary)', fontSize: '16px', lineHeight: 1.55 }}>{heroPlace.why}</p>
+        <p style={{ color: 'var(--text-primary)', fontSize: '16px', lineHeight: 1.55 }}>{activeHeroPlace.why}</p>
+      </section>
+
+      <section className="card" style={{ padding: '16px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+          <p style={{ color: 'var(--text-primary)', fontSize: '14px', fontWeight: 700 }}>
+            Live location map
+          </p>
+          <span
+            className="pill"
+            style={{
+              color: userLocation ? 'var(--accent)' : 'var(--text-secondary)',
+              borderColor: userLocation ? 'var(--accent)' : 'var(--border-color)',
+            }}
+          >
+            {userLocation ? 'GPS on' : 'GPS pending'}
+          </span>
+        </div>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '12px', marginBottom: '10px' }}>
+          You are centered. Numbered dots are the closest suggestions around your live location.
+        </p>
+        {isLocating ? (
+          <p style={{ color: 'var(--text-secondary)', fontSize: '12px', marginBottom: '8px' }}>Finding your live location...</p>
+        ) : null}
+        {locationError ? (
+          <p style={{ color: '#ffb6b6', fontSize: '12px', marginBottom: '8px' }}>{locationError}</p>
+        ) : null}
+        <div
+          style={{
+            borderRadius: '14px',
+            border: '1px solid var(--border-color)',
+            background: 'var(--bg-primary)',
+            height: '220px',
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          {userLocation ? (
+            <iframe
+              title="Google Maps live location"
+              src={`https://maps.google.com/maps?q=${encodeURIComponent(
+                `${userLocation.lat},${userLocation.lng}`,
+              )}&z=16&output=embed`}
+              style={{ width: '100%', height: '100%', border: 0 }}
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+            />
+          ) : null}
+        </div>
+        <div style={{ display: 'grid', gap: '6px', marginTop: '10px' }}>
+          {mapLegendPlaces.map((place, index) => (
+            <p key={`legend-${place.id}`} style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+              <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{index + 1}. {place.name}</span>{' '}
+              - {place.distance}m -{' '}
+              <a
+                href={`https://www.google.com/maps/dir/?api=1&destination=${place.coordinates.lat},${place.coordinates.lng}&travelmode=walking`}
+                target="_blank"
+                rel="noreferrer"
+                style={{ color: 'var(--accent)', textDecoration: 'none' }}
+              >
+                open route
+              </a>
+            </p>
+          ))}
+        </div>
       </section>
 
       <section style={{ display: 'grid', gap: '10px' }}>
@@ -219,13 +394,15 @@ function WalkingScreen() {
       </section>
 
       <section style={{ marginTop: 'auto', display: 'grid', gap: '10px' }}>
-        <button type="button" className="btn-primary" onClick={() => toggleSaved(heroPlace.id)}>
-          Save this place
+        <button type="button" className="btn-primary" onClick={() => toggleSaved(activeHeroPlace.id)}>
+          {activeHeroPlace.saved ? 'Remove saved place' : 'Save this place'}
         </button>
         <button type="button" className="btn-ghost" onClick={() => navigate('/saved')}>
           Saved Places →
         </button>
       </section>
+      </>
+      ) : null}
 
       {showToast && (
         <div

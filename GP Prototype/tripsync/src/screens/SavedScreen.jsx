@@ -1,34 +1,57 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-
-const SAVED = [
-  {
-    id: 1,
-    name: 'Tartine Manufactory',
-    type: 'Bakery',
-    description: 'A legendary SF bakery - the country loaf alone is worth the detour.',
-    savedAt: '2 mins ago',
-  },
-  {
-    id: 2,
-    name: 'Bi-Rite Creamery',
-    type: 'Ice Cream',
-    description: 'Salted caramel ice cream that people genuinely travel for.',
-    savedAt: '8 mins ago',
-  },
-]
+import { fetchSavedPlaces, getSessionId, toggleSavedPlace } from '../lib/api'
 
 function SavedScreen() {
   const navigate = useNavigate()
-  const [savedPlaces, setSavedPlaces] = useState(SAVED)
+  const [savedPlaces, setSavedPlaces] = useState([])
   const [removingIds, setRemovingIds] = useState([])
+  const [loadError, setLoadError] = useState('')
+  const [isLoading, setIsLoading] = useState(true)
+  const sessionId = getSessionId()
+
+  useEffect(() => {
+    if (!sessionId) {
+      navigate('/onboarding', { replace: true })
+      return
+    }
+
+    let cancelled = false
+
+    const loadSaved = async () => {
+      try {
+        const payload = await fetchSavedPlaces(sessionId)
+        if (cancelled) return
+        setSavedPlaces(payload.places)
+        setLoadError('')
+      } catch (error) {
+        if (cancelled) return
+        setLoadError('Could not load saved places.')
+      } finally {
+        if (!cancelled) setIsLoading(false)
+      }
+    }
+
+    loadSaved()
+
+    return () => {
+      cancelled = true
+    }
+  }, [navigate, sessionId])
 
   const handleRemove = (id) => {
     setRemovingIds((current) => [...current, id])
 
-    setTimeout(() => {
+    setTimeout(async () => {
       setSavedPlaces((current) => current.filter((place) => place.id !== id))
       setRemovingIds((current) => current.filter((item) => item !== id))
+      if (sessionId) {
+        try {
+          await toggleSavedPlace({ sessionId, place: { id } })
+        } catch (error) {
+          setLoadError('Could not update saved place state.')
+        }
+      }
     }, 260)
   }
 
@@ -76,7 +99,18 @@ function SavedScreen() {
         </span>
       </header>
 
-      {savedPlaces.length > 0 ? (
+      {isLoading ? (
+        <section className="card">
+          <p style={{ color: 'var(--text-secondary)' }}>Loading saved places...</p>
+        </section>
+      ) : null}
+      {loadError ? (
+        <section className="card" style={{ borderColor: '#754545' }}>
+          <p style={{ color: '#ff9f9f' }}>{loadError}</p>
+        </section>
+      ) : null}
+
+      {!isLoading && savedPlaces.length > 0 ? (
         <section style={{ display: 'grid', gap: '12px' }}>
           {savedPlaces.map((place) => {
             const isRemoving = removingIds.includes(place.id)
@@ -126,7 +160,9 @@ function SavedScreen() {
             )
           })}
         </section>
-      ) : (
+      ) : null}
+
+      {!isLoading && savedPlaces.length === 0 ? (
         <section
           className="card"
           style={{
@@ -148,7 +184,7 @@ function SavedScreen() {
             Back to Walk
           </button>
         </section>
-      )}
+      ) : null}
     </main>
   )
 }

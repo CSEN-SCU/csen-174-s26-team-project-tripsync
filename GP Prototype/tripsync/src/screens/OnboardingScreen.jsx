@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { createSession } from '../lib/api'
 
 const interests = [
   'Food',
@@ -20,17 +21,37 @@ function OnboardingScreen() {
   const navigate = useNavigate()
   const [selectedInterests, setSelectedInterests] = useState([])
   const [alertMode, setAlertMode] = useState('voice-visual')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [formError, setFormError] = useState('')
 
   const hasMinimumInterests = selectedInterests.length >= 3
   const progressWidth = `${Math.min((selectedInterests.length / 6) * 100, 100)}%`
 
   const toggleInterest = (interest) => {
+    setFormError('')
     setSelectedInterests((current) => {
       if (current.includes(interest)) {
         return current.filter((item) => item !== interest)
       }
       return [...current, interest]
     })
+  }
+
+  const handleStart = async () => {
+    if (!hasMinimumInterests || isSubmitting) return
+
+    try {
+      setIsSubmitting(true)
+      const sessionId = await createSession({
+        interests: selectedInterests,
+        alertMode,
+      })
+      navigate('/walking', { state: { sessionId } })
+    } catch (error) {
+      setFormError('Could not start demo session. Make sure the API server is running.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -157,17 +178,20 @@ function OnboardingScreen() {
       </div>
 
       <div style={{ paddingTop: '20px' }}>
+        {formError ? (
+          <p style={{ color: '#ff7f7f', marginBottom: '8px', fontSize: '13px' }}>{formError}</p>
+        ) : null}
         <button
           type="button"
           className="btn-primary"
-          disabled={!hasMinimumInterests}
-          onClick={() => navigate('/walking')}
+          disabled={!hasMinimumInterests || isSubmitting}
+          onClick={handleStart}
           style={{
-            opacity: hasMinimumInterests ? 1 : 0.45,
-            cursor: hasMinimumInterests ? 'pointer' : 'not-allowed',
+            opacity: hasMinimumInterests && !isSubmitting ? 1 : 0.45,
+            cursor: hasMinimumInterests && !isSubmitting ? 'pointer' : 'not-allowed',
           }}
         >
-          Let&apos;s Go
+          {isSubmitting ? 'Starting...' : "Let's Go"}
         </button>
       </div>
     </main>
