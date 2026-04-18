@@ -1,5 +1,13 @@
-const LS_GROUPS = "orbit_kieran_wishlist_groups_v1";
-const LS_ITEMS = "orbit_kieran_wishlist_items_v1";
+function keysForUser(userId) {
+  if (userId == null || !Number.isFinite(Number(userId))) {
+    return { groups: null, items: null };
+  }
+  const id = String(userId);
+  return {
+    groups: `orbit_kieran_wishlist_groups_v1_u${id}`,
+    items: `orbit_kieran_wishlist_items_v1_u${id}`,
+  };
+}
 
 export const GROUP_COLOR_PALETTE = [
   "#e879f9",
@@ -16,10 +24,18 @@ export function defaultWishlistGroups() {
   return [{ id: "g-default", name: "My plans", color: GROUP_COLOR_PALETTE[0] }];
 }
 
-export function loadWishlist() {
+/**
+ * Load itineraries for a signed-in user. Each user has separate localStorage keys.
+ * @param {number|null|undefined} userId
+ */
+export function loadWishlist(userId) {
+  if (userId == null || !Number.isFinite(Number(userId))) {
+    return { groups: defaultWishlistGroups(), items: [] };
+  }
+  const k = keysForUser(userId);
   try {
-    const rawG = localStorage.getItem(LS_GROUPS);
-    const rawI = localStorage.getItem(LS_ITEMS);
+    const rawG = localStorage.getItem(k.groups);
+    const rawI = localStorage.getItem(k.items);
     const groups = rawG ? JSON.parse(rawG) : null;
     const items = rawI ? JSON.parse(rawI) : null;
     return {
@@ -34,10 +50,16 @@ export function loadWishlist() {
   }
 }
 
-export function saveWishlist(groups, items) {
+/**
+ * Persist itineraries for the current user only.
+ * @param {number|null|undefined} userId
+ */
+export function saveWishlist(userId, groups, items) {
+  if (userId == null || !Number.isFinite(Number(userId))) return;
+  const k = keysForUser(userId);
   try {
-    localStorage.setItem(LS_GROUPS, JSON.stringify(groups));
-    localStorage.setItem(LS_ITEMS, JSON.stringify(items));
+    localStorage.setItem(k.groups, JSON.stringify(groups));
+    localStorage.setItem(k.items, JSON.stringify(items));
   } catch {
     /* private mode etc. */
   }

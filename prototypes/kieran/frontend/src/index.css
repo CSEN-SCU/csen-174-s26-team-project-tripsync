@@ -43,3 +43,11 @@ button {
   min-height: 200px;
   background: #1e293b;
 }
+
+/* Leaflet’s default .leaflet-div-icon frame can hide custom divIcons (no dots on map). */
+.leaflet-div-icon.orbit-marker-dot,
+.leaflet-div-icon.orbit-marker-star,
+.leaflet-div-icon.orbit-marker-user {
+  background: transparent !important;
+  border: none !important;
+}

@@ -133,7 +133,7 @@ export function interestColor(theme) {
  * @param {string[]} selected - e.g. ["history", "food"]
  */
 export function poiMatchesSelectedInterests(poi, selected) {
-  if (!selected || selected.length === 0) return false;
+  if (!selected || selected.length === 0) return true;
   const theme = poiInterestTheme(poi);
   return selected.includes(theme);
 }

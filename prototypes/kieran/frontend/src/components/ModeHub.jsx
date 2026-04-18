@@ -1,4 +1,4 @@
-export default function ModeHub({ displayName, onExplore, onManageItineraries, onSignOut }) {
+export default function ModeHub({ displayName, onExplore, onManageItineraries, onFriends, onSignOut }) {
   const cardBase = {
     width: "100%",
     textAlign: "left",
@@ -58,6 +58,16 @@ export default function ModeHub({ displayName, onExplore, onManageItineraries, o
             <div style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.5 }}>
               Create itineraries, add or remove specific things you want to do, and organize them into
               groups.
+            </div>
+          </button>
+
+          <button type="button" onClick={onFriends} style={cardBase}>
+            <div style={{ fontSize: 11, color: "#a78bfa", fontWeight: 600, marginBottom: 6 }}>
+              People
+            </div>
+            <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 6 }}>Friends</div>
+            <div style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.5 }}>
+              Link accounts by email so you can grow a travel circle (prototype — no shared itineraries yet).
             </div>
           </button>
         </div>
