@@ -7,6 +7,7 @@ https://meta.wikimedia.org/wiki/User-Agent_policy
 
 from __future__ import annotations
 
+import time
 import httpx
 
 UA = {
@@ -16,6 +17,8 @@ UA = {
     )
 }
 MAX_CHARS = 480
+LOOKUP_CACHE_TTL_S = 60 * 60 * 12
+_LOOKUP_CACHE: dict[tuple[str, str], tuple[float, str | None]] = {}
 
 
 def wikipedia_summary(wikipedia_tag: str, client: httpx.Client) -> str | None:
@@ -36,6 +39,12 @@ def wikipedia_summary(wikipedia_tag: str, client: httpx.Client) -> str | None:
         return None
 
     title = title.replace("_", " ")
+    ckey = ("wiki", f"{lang}:{title.lower()}")
+    cached = _LOOKUP_CACHE.get(ckey)
+    now = time.time()
+    if cached and (now - cached[0]) <= LOOKUP_CACHE_TTL_S:
+        return cached[1]
+
     url = f"https://{lang}.wikipedia.org/w/api.php"
     params = {
         "action": "query",
@@ -56,9 +65,13 @@ def wikipedia_summary(wikipedia_tag: str, client: httpx.Client) -> str | None:
                 continue
             extract = page.get("extract")
             if isinstance(extract, str) and len(extract.strip()) > 40:
-                return extract.strip()
+                text = extract.strip()
+                _LOOKUP_CACHE[ckey] = (now, text)
+                return text
     except (httpx.HTTPError, ValueError, KeyError, TypeError):
+        _LOOKUP_CACHE[ckey] = (now, None)
         return None
+    _LOOKUP_CACHE[ckey] = (now, None)
     return None
 
 
@@ -67,6 +80,11 @@ def wikidata_description(qid: str, client: httpx.Client) -> str | None:
     qid = (qid or "").strip()
     if not qid.startswith("Q"):
         return None
+    ckey = ("qid", qid)
+    cached = _LOOKUP_CACHE.get(ckey)
+    now = time.time()
+    if cached and (now - cached[0]) <= LOOKUP_CACHE_TTL_S:
+        return cached[1]
     url = f"https://www.wikidata.org/wiki/Special:EntityData/{qid}.json"
     try:
         r = client.get(url, headers=UA, timeout=4.0)
@@ -78,9 +96,13 @@ def wikidata_description(qid: str, client: httpx.Client) -> str | None:
         en = descs.get("en") or {}
         val = en.get("value")
         if isinstance(val, str) and len(val.strip()) > 8:
-            return val.strip()
+            text = val.strip()
+            _LOOKUP_CACHE[ckey] = (now, text)
+            return text
     except (httpx.HTTPError, ValueError, KeyError, TypeError):
+        _LOOKUP_CACHE[ckey] = (now, None)
         return None
+    _LOOKUP_CACHE[ckey] = (now, None)
     return None
 
 

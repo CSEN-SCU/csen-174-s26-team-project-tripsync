@@ -203,7 +203,7 @@ export default function MapSettingsSheet({
                 fontSize: 12,
               }}
             >
-              Pick at least one interest so the map can show pins.
+              No interests selected — the map shows every nearby pin. Turn interests on to filter.
             </div>
           )}
 

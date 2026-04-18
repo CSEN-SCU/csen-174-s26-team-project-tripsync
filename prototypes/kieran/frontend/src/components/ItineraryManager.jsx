@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-
-const API = "/api";
+import { getApiBase } from "../lib/apiConfig.js";
 
 function toRad(d) {
   return (d * Math.PI) / 180;
@@ -95,7 +94,7 @@ export default function ItineraryManager({
     setSearchErr(null);
     setPicked(null);
     try {
-      const res = await fetch(`${API}/geocode`, {
+      const res = await fetch(`${getApiBase()}/geocode`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ q, lat: biasLat, lng: biasLng }),
@@ -114,7 +113,7 @@ export default function ItineraryManager({
       const msg = e?.message || "Search failed";
       setSearchErr(
         msg === "Failed to fetch"
-          ? "Could not reach the server. Start the backend (port 8001) and use the Vite dev app so /api is proxied."
+          ? "Could not reach the API. Start the backend on port 8010 (uvicorn) and refresh."
           : msg
       );
       setResults([]);

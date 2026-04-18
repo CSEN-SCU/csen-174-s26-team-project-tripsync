@@ -2,11 +2,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import IntroScreen from "./components/IntroScreen.jsx";
 import SignInScreen from "./components/SignInScreen.jsx";
 import ModeHub from "./components/ModeHub.jsx";
+import FriendsPanel from "./components/FriendsPanel.jsx";
 import ItineraryManager from "./components/ItineraryManager.jsx";
 import MapView from "./components/MapView.jsx";
 import ExploreDock from "./components/ExploreDock.jsx";
 import MapSettingsSheet from "./components/MapSettingsSheet.jsx";
 import { poiMatchesSelectedInterests } from "./lib/interests.js";
+import { getApiBase } from "./lib/apiConfig.js";
+import { clearSession, loadStoredSession, saveSession } from "./lib/authSession.js";
 import {
   GROUP_COLOR_PALETTE,
   loadWishlist,
@@ -14,7 +17,24 @@ import {
   saveWishlist,
 } from "./lib/wishlistStorage.js";
 
-const API = "/api";
+function initialAuthFromStorage() {
+  const s = loadStoredSession();
+  if (!s) return { phase: "landing", userEmail: null, userId: null };
+  return { phase: "hub", userEmail: s.email, userId: s.userId };
+}
+
+function formatApiErrorDetail(detail) {
+  if (detail == null) return null;
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) {
+    return detail
+      .map((x) => (typeof x === "object" && x?.msg ? String(x.msg) : JSON.stringify(x)))
+      .join("; ");
+  }
+  if (typeof detail === "object") return JSON.stringify(detail);
+  return String(detail);
+}
+
 
 const DEFAULT_LAT = 37.3496;
 const DEFAULT_LNG = -121.939;
@@ -22,7 +42,8 @@ const PASSIVE_KM = 0.35;
 const PASSIVE_RING_M = PASSIVE_KM * 1000;
 const NEARBY_RADIUS_KM = 2.4;
 const MIN_FETCH_INTERVAL_MS = 14_000;
-const MIN_MOVE_KM = 0.1;
+// Refetch nearby when you’ve moved “meaningfully” relative to the search radius.
+const MIN_MOVE_KM = NEARBY_RADIUS_KM * 0.5;
 const PERIODIC_REFRESH_MS = 55_000;
 /** Keep POIs on the map across refetches; prune when farther than this from the user. */
 const NEARBY_CACHE_PRUNE_KM = 4.8;
@@ -110,8 +131,11 @@ function speakText(text, onStart, onEnd) {
 
 /** landing → signin → hub → explore | itineraries */
 export default function App() {
-  const [phase, setPhase] = useState("landing");
-  const [userEmail, setUserEmail] = useState(null);
+  const authBoot = initialAuthFromStorage();
+  const [phase, setPhase] = useState(authBoot.phase);
+  const [userEmail, setUserEmail] = useState(authBoot.userEmail);
+  const [userId, setUserId] = useState(authBoot.userId);
+  const [authMode, setAuthMode] = useState("signin");
   const inExplore = phase === "explore";
   const [nearby, setNearby] = useState([]);
   const [lat, setLat] = useState(DEFAULT_LAT);
@@ -131,7 +155,7 @@ export default function App() {
   const [lastPoiFetchAt, setLastPoiFetchAt] = useState(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [exploreIdx, setExploreIdx] = useState(0);
-  const initialWish = loadWishlist();
+  const initialWish = loadWishlist(authBoot.userId);
   const [wishlistGroups, setWishlistGroups] = useState(initialWish.groups);
   const [wishlistItems, setWishlistItems] = useState(initialWish.items);
   const [wishDropMode, setWishDropMode] = useState(false);
@@ -172,14 +196,49 @@ export default function App() {
   }, [simulating]);
 
   useEffect(() => {
-    if (!inExplore) {
-      nearbyCacheRef.current.clear();
-    }
-  }, [inExplore]);
+    if (userId == null) return;
+    saveWishlist(userId, wishlistGroups, wishlistItems);
+  }, [userId, wishlistGroups, wishlistItems]);
 
   useEffect(() => {
-    saveWishlist(wishlistGroups, wishlistItems);
-  }, [wishlistGroups, wishlistItems]);
+    if (userId == null) return undefined;
+    const t = setTimeout(() => {
+      fetch(`${getApiBase()}/users/${userId}/wishlist`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ groups: wishlistGroups, items: wishlistItems }),
+      }).catch(() => {});
+    }, 900);
+    return () => clearTimeout(t);
+  }, [userId, wishlistGroups, wishlistItems]);
+
+  useEffect(() => {
+    if (userId == null) return undefined;
+    const local = loadWishlist(userId);
+    setWishlistGroups(local.groups);
+    setWishlistItems(local.items);
+    setWishDropGroupId(local.groups[0]?.id ?? "g-default");
+    setVisibleWishGroupIds(local.groups.map((g) => g.id));
+
+    const ac = new AbortController();
+    (async () => {
+      try {
+        const res = await fetch(`${getApiBase()}/users/${userId}/wishlist`, { signal: ac.signal });
+        if (!res.ok) return;
+        const data = await res.json();
+        const g = data.groups ?? [];
+        const it = data.items ?? [];
+        if ((Array.isArray(g) && g.length > 0) || (Array.isArray(it) && it.length > 0)) {
+          setWishlistGroups(g);
+          setWishlistItems(it);
+          saveWishlist(userId, g, it);
+        }
+      } catch {
+        /* aborted or offline */
+      }
+    })();
+    return () => ac.abort();
+  }, [userId]);
 
   useEffect(() => {
     const ids = new Set(wishlistGroups.map((g) => g.id));
@@ -218,6 +277,8 @@ export default function App() {
         const moved = haversineKm(last.lat, last.lng, la, lo);
         const age = Date.now() - last.t;
         if (age < MIN_FETCH_INTERVAL_MS && moved < MIN_MOVE_KM) {
+          const merged = mergeNearbyRows(nearbyCacheRef.current, [], la, lo);
+          setNearby(merged);
           return;
         }
       }
@@ -226,7 +287,7 @@ export default function App() {
       setPoisLoading(true);
       setError(null);
       try {
-        const res = await fetch(`${API}/nearby`, {
+        const res = await fetch(`${getApiBase()}/nearby`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -266,10 +327,19 @@ export default function App() {
     []
   );
 
-  // Only refetch when the map anchor moves — not on every heading/speed tweak (avoids
-  // hammering Overpass and empty bbox edge cases).
+  // Re-entering Explore used to clear the POI cache but not React state; a throttled
+  // fetch then merged an empty cache and wiped all markers. Always force one refresh
+  // when opening Explore, then refetch when the anchor moves.
   useEffect(() => {
-    if (!inExplore) return;
+    if (!inExplore) return undefined;
+    const t = setTimeout(() => {
+      fetchNearby(true);
+    }, 0);
+    return () => clearTimeout(t);
+  }, [inExplore, fetchNearby]);
+
+  useEffect(() => {
+    if (!inExplore) return undefined;
     const t = setTimeout(() => fetchNearby(false), 0);
     return () => clearTimeout(t);
   }, [lat, lng, inExplore, fetchNearby]);
@@ -317,7 +387,7 @@ export default function App() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`${API}/narrate`, {
+        const res = await fetch(`${getApiBase()}/narrate`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -459,7 +529,7 @@ export default function App() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API}/converse`, {
+      const res = await fetch(`${getApiBase()}/converse`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -468,6 +538,7 @@ export default function App() {
           interests,
           name: activePoi.name,
           category: activePoi.category,
+          short_description: activePoi.short_description,
           tags: activePoi.tags,
         }),
       });
@@ -663,14 +734,58 @@ export default function App() {
       : "Next";
 
   if (phase === "landing") {
-    return <IntroScreen onSignIn={() => setPhase("signin")} />;
+    return (
+      <IntroScreen
+        onSignIn={() => {
+          setAuthMode("signin");
+          setPhase("signin");
+        }}
+        onCreateAccount={() => {
+          setAuthMode("signup");
+          setPhase("signin");
+        }}
+      />
+    );
   }
   if (phase === "signin") {
     return (
       <SignInScreen
-        onBack={() => setPhase("landing")}
-        onSignedIn={(email) => {
-          setUserEmail(email);
+        mode={authMode}
+        onSwitchMode={setAuthMode}
+        onBack={() => {
+          setAuthMode("signin");
+          setPhase("landing");
+        }}
+        onSubmit={async ({ mode, email, password }) => {
+          const path = mode === "signup" ? "sign-up" : "sign-in";
+          const res = await fetch(`${getApiBase()}/users/${path}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password }),
+          });
+          const raw = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            throw new Error(formatApiErrorDetail(raw.detail) || `Request failed (${res.status})`);
+          }
+          setUserId(raw.id);
+          setUserEmail(raw.email);
+          saveSession(raw.id, raw.email);
+          const g = raw.wishlist?.groups ?? [];
+          const it = raw.wishlist?.items ?? [];
+          const hasCloud =
+            (Array.isArray(g) && g.length > 0) || (Array.isArray(it) && it.length > 0);
+            if (hasCloud) {
+              setWishlistGroups(g);
+              setWishlistItems(it);
+              saveWishlist(raw.id, g, it);
+            } else {
+              const local = loadWishlist(raw.id);
+              await fetch(`${getApiBase()}/users/${raw.id}/wishlist`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ groups: local.groups, items: local.items }),
+            }).catch(() => {});
+          }
           setPhase("hub");
         }}
       />
@@ -682,12 +797,23 @@ export default function App() {
         displayName={userEmail || "Traveler"}
         onExplore={() => setPhase("explore")}
         onManageItineraries={() => setPhase("itineraries")}
+        onFriends={() => setPhase("friends")}
         onSignOut={() => {
+          clearSession();
           setUserEmail(null);
+          setUserId(null);
+          const w = loadWishlist(null);
+          setWishlistGroups(w.groups);
+          setWishlistItems(w.items);
+          setWishDropGroupId(w.groups[0]?.id ?? "g-default");
+          setVisibleWishGroupIds(w.groups.map((g) => g.id));
           setPhase("landing");
         }}
       />
     );
+  }
+  if (phase === "friends") {
+    return <FriendsPanel userId={userId} onBack={() => setPhase("hub")} />;
   }
   if (phase === "itineraries") {
     return (

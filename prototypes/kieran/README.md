@@ -4,7 +4,8 @@ Interactive prototype for the **Orbit** product vision: map-based POIs, passive 
 
 ## Stack
 
-- **Backend:** FastAPI on port **8001** — `POST /api/nearby` (live OpenStreetMap via **Overpass**), `POST /api/narrate`, `POST /api/converse`. `GET /api/pois` is unused (markers come from `/api/nearby`).
+- **Backend:** FastAPI on port **8010** — `POST /api/nearby` (live OpenStreetMap via **Overpass**), `POST /api/narrate`, `POST /api/converse`. `GET /api/pois` is unused (markers come from `/api/nearby`).
+- **Data (SQLite):** SQLAlchemy writes **`orbit_kieran.db`** in the backend folder — it **survives stopping** Uvicorn (same as any SQLite file). Users have **bcrypt-hashed passwords**; **`POST /api/users/sign-up`** creates an account, **`POST /api/users/sign-in`** only loads an existing one. REST also includes `GET|PUT /api/users/{id}/wishlist` and `GET|POST|DELETE /api/users/{id}/friends…`. The browser stores **user id + email** in `localStorage` after a successful auth so **Friends** and refresh keep working. Itineraries sync after a short debounce; if the account has no cloud data yet, your local wishlist is uploaded once.
 - **Frontend:** Vite + React + Leaflet on port **5174** (proxies `/api` to the backend). The map is full-width; **Filters** (top-right) opens interests, passive mode, GPS / simulation, and compact place lists. **Now exploring**, **Next**, replay/stop/clear, and follow-up chat sit in a **bottom dock**.
 
 ## Live POIs and motion
@@ -25,7 +26,7 @@ cd prototypes/kieran/backend
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
-uvicorn main:app --reload --port 8001
+uvicorn main:app --reload --port 8010
 ```
 
 **2. Frontend** (new terminal)
@@ -36,7 +37,7 @@ npm install
 npm run dev
 ```
 
-Open **http://localhost:5174**. You need **network** access for live POIs. Narration uses the **Web Speech API** (system voice).
+Open **http://localhost:5174**. The UI calls the API at **http://127.0.0.1:8010/api** (this prototype’s port, to avoid clashes with other apps on 8001). You need **network** access for live POIs. Narration uses the **Web Speech API** (system voice). Optional: set **`VITE_API_URL`** in `frontend/.env` if the API lives elsewhere.
 
 ## Try it
 

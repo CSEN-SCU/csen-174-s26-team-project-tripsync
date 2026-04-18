@@ -1,4 +1,4 @@
-export default function IntroScreen({ onSignIn }) {
+export default function IntroScreen({ onSignIn, onCreateAccount }) {
   return (
     <div
       style={{
@@ -76,7 +76,23 @@ export default function IntroScreen({ onSignIn }) {
             color: "#1a1204",
           }}
         >
-          Sign in to continue
+          Sign in
+        </button>
+        <button
+          type="button"
+          onClick={onCreateAccount}
+          style={{
+            width: "100%",
+            marginTop: 10,
+            border: "1px solid var(--border)",
+            borderRadius: 10,
+            padding: "13px 18px",
+            fontWeight: 600,
+            background: "transparent",
+            color: "var(--text)",
+          }}
+        >
+          Create account
         </button>
       </div>
     </div>

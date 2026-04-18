@@ -27,7 +27,7 @@ function getDotIcon(color, dim = false) {
     dotIconCache.set(
       key,
       L.divIcon({
-        className: "",
+        className: "orbit-marker-dot",
         html: `<div style="
       width:${size}px;height:${size}px;border-radius:50%;
       background:${color};
@@ -49,7 +49,7 @@ function getStarIcon(color) {
     starIconCache.set(
       color,
       L.divIcon({
-        className: "",
+        className: "orbit-marker-star",
         html: `<div style="
       width:26px;height:26px;border-radius:50%;
       background:${color}22;
@@ -67,7 +67,7 @@ function getStarIcon(color) {
 }
 
 const userIcon = L.divIcon({
-  className: "",
+  className: "orbit-marker-user",
   html: `<div style="
     width:20px;height:20px;border-radius:50%;
     background:#f1f5f9;

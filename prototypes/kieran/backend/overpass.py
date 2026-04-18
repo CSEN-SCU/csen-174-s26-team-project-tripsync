@@ -6,6 +6,7 @@ Respect usage policy: https://wiki.openstreetmap.org/wiki/Overpass_API
 from __future__ import annotations
 
 import math
+import time
 from typing import Any
 
 import httpx
@@ -13,6 +14,32 @@ import httpx
 from wikimedia import enrich_poi_descriptions
 
 OVERPASS_URL = "https://overpass-api.de/api/interpreter"
+NEARBY_CACHE_TTL_S = 45.0
+FAIL_CACHE_TTL_S = 12.0
+_NEARBY_CACHE: dict[tuple, tuple[float, list[dict[str, Any]]]] = {}
+
+
+def _cache_key(
+    lat: float,
+    lng: float,
+    radius_km: float,
+    heading_deg: float | None,
+    speed_mps: float | None,
+    max_results: int,
+) -> tuple:
+    # Quantize moving inputs so nearby, successive calls hit cache.
+    return (
+        round(lat, 3),
+        round(lng, 3),
+        round(radius_km, 2),
+        None if heading_deg is None else int(heading_deg // 30),
+        None if speed_mps is None else round(speed_mps, 1),
+        max_results,
+    )
+
+
+def _clone_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [dict(r) for r in rows]
 
 
 def haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
@@ -72,7 +99,7 @@ def bbox_for_search(
 
 def build_overpass_query(south: float, west: float, north: float, east: float) -> str:
     b = f"{south},{west},{north},{east}"
-    return f"""[out:json][timeout:25];
+    return f"""[out:json][timeout:12];
 (
   node["tourism"]({b});
   way["tourism"]({b});
@@ -252,14 +279,23 @@ def fetch_pois_near(
     speed_mps: float | None,
     max_results: int = 55,
 ) -> list[dict[str, Any]]:
+    now = time.time()
+    key = _cache_key(lat, lng, radius_km, heading_deg, speed_mps, max_results)
+    cached = _NEARBY_CACHE.get(key)
+    if cached:
+        ttl = FAIL_CACHE_TTL_S if not cached[1] else NEARBY_CACHE_TTL_S
+        if (now - cached[0]) <= ttl:
+            return _clone_rows(cached[1])
+
     south, west, north, east = bbox_for_search(lat, lng, radius_km, heading_deg, speed_mps)
     q = build_overpass_query(south, west, north, east)
     try:
-        with httpx.Client(timeout=28.0) as client:
+        with httpx.Client(timeout=10.0) as client:
             r = client.post(OVERPASS_URL, data={"data": q})
             r.raise_for_status()
             data = r.json()
     except (httpx.HTTPError, ValueError, KeyError):
+        _NEARBY_CACHE[key] = (now, [])
         return []
 
     elements = data.get("elements") or []
@@ -329,8 +365,14 @@ def fetch_pois_near(
         out.append(row)
 
     try:
-        enrich_poi_descriptions(out, max_lookups=12)
+        enrich_poi_descriptions(out, max_lookups=8)
     except Exception:
         pass
 
+    _NEARBY_CACHE[key] = (now, _clone_rows(out))
+    if len(_NEARBY_CACHE) > 220:
+        cutoff = now - max(NEARBY_CACHE_TTL_S, FAIL_CACHE_TTL_S)
+        stale = [k for k, (ts, _) in _NEARBY_CACHE.items() if ts < cutoff]
+        for sk in stale:
+            _NEARBY_CACHE.pop(sk, None)
     return out
