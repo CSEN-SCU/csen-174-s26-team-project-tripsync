@@ -1,710 +1,453 @@
 /* eslint-env node */
-import { createServer } from 'node:http'
-import { randomUUID } from 'node:crypto'
-import fs from 'node:fs'
-import path from 'node:path'
-import https from 'node:https'
-import { fileURLToPath } from 'node:url'
-import { createRequire } from 'node:module'
+import express from 'express'
+import cors from 'cors'
 import dotenv from 'dotenv'
-import initSqlJs from 'sql.js'
+import Database from 'better-sqlite3'
+import path from 'node:path'
+import fs from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import Groq from 'groq-sdk'
+import fetch from 'node-fetch'
 
-dotenv.config()
+dotenv.config({ path: path.join(path.dirname(fileURLToPath(import.meta.url)), '.env') })
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
-const projectRoot = path.resolve(__dirname, '..')
 const dataDir = path.join(__dirname, 'data')
 const dbPath = path.join(dataDir, 'tripsync.sqlite')
+if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true })
 
-const require = createRequire(import.meta.url)
-const sqlJsDistPath = path.dirname(require.resolve('sql.js'))
+const app = express()
+app.use(cors())
+app.use(express.json())
 
-const GEMINI_API_KEY = (process.env.GEMINI_API_KEY || '').trim()
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-1.5-flash'
-const PORT = Number(process.env.PORT || 8787)
-
-const PLACE_SEED = [
-  {
-    id: 1,
-    name: 'Tartine Manufactory',
-    type: 'Bakery',
-    distance_m: 80,
-    lat: 37.7614,
-    lng: -122.4105,
-    bearing_deg: 305,
-  },
-  {
-    id: 2,
-    name: 'Adobe Books',
-    type: 'Bookshop',
-    distance_m: 140,
-    lat: 37.7592,
-    lng: -122.4217,
-    bearing_deg: 225,
-  },
-  {
-    id: 3,
-    name: 'Dolores Park',
-    type: 'Park',
-    distance_m: 210,
-    lat: 37.7596,
-    lng: -122.4269,
-    bearing_deg: 260,
-  },
-  {
-    id: 4,
-    name: 'Bi-Rite Creamery',
-    type: 'Ice Cream',
-    distance_m: 260,
-    lat: 37.7616,
-    lng: -122.4241,
-    bearing_deg: 248,
-  },
-  {
-    id: 5,
-    name: '996 Mural',
-    type: 'Street Art',
-    distance_m: 310,
-    lat: 37.7515,
-    lng: -122.4194,
-    bearing_deg: 190,
-  },
+const PORT = Number(process.env.PORT || 3001)
+const GROQ_API_KEY = process.env.GROQ_API_KEY || ''
+const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.1-8b-instant'
+const PEXELS_API_KEY = process.env.PEXELS_API_KEY || ''
+const OVERPASS_ENDPOINTS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.osm.ch/api/interpreter',
 ]
+const OVERPASS_TIMEOUT_MS = 18_000
+const FALLBACK_IMAGE = 'https://placehold.co/800x500/161616/00e5a0?text=TripSync'
 
-const serverState = {
-  db: null,
-}
+const groq = GROQ_API_KEY ? new Groq({ apiKey: GROQ_API_KEY }) : null
+const db = new Database(dbPath)
 
-const EARTH_RADIUS_METERS = 6371000
+db.exec(`
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT UNIQUE NOT NULL,
+    interests TEXT NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+  );
+`)
 
-const toRadians = (value) => (value * Math.PI) / 180
-const toDegrees = (value) => (value * 180) / Math.PI
+db.exec(`
+  CREATE TABLE IF NOT EXISTS saved_places (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT NOT NULL,
+    place_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT NOT NULL,
+    saved_at TEXT DEFAULT CURRENT_TIMESTAMP
+  );
+`)
 
-const formatRelative = (timestampMs) => {
-  const diffMs = Math.max(Date.now() - timestampMs, 0)
-  const minutes = Math.round(diffMs / 60000)
-  if (minutes < 1) return 'just now'
-  if (minutes === 1) return '1 min ago'
-  if (minutes < 60) return `${minutes} mins ago`
-  const hours = Math.round(minutes / 60)
-  return `${hours}h ago`
-}
+const upsertUserStmt = db.prepare(`
+  INSERT INTO users (session_id, interests)
+  VALUES (?, ?)
+  ON CONFLICT(session_id) DO UPDATE SET interests = excluded.interests
+`)
+const getUserStmt = db.prepare('SELECT session_id, interests FROM users WHERE session_id = ?')
+const resetUsersStmt = db.prepare('DELETE FROM users')
+const resetSavedStmt = db.prepare('DELETE FROM saved_places')
 
-const getMapPosition = (distanceMeters, bearingDeg) => {
-  const radius = Math.min(distanceMeters / 8, 38)
-  const radians = ((bearingDeg - 90) * Math.PI) / 180
-  return {
-    x: Math.round((50 + Math.cos(radians) * radius) * 10) / 10,
-    y: Math.round((50 + Math.sin(radians) * radius) * 10) / 10,
-  }
-}
-
-const getDistanceMeters = (from, to) => {
-  const lat1 = toRadians(from.lat)
-  const lon1 = toRadians(from.lng)
-  const lat2 = toRadians(to.lat)
-  const lon2 = toRadians(to.lng)
-
-  const dLat = lat2 - lat1
-  const dLon = lon2 - lon1
-
+const haversineMeters = (lat1, lon1, lat2, lon2) => {
+  const toRad = (value) => (value * Math.PI) / 180
+  const R = 6371000
+  const dLat = toRad(lat2 - lat1)
+  const dLon = toRad(lon2 - lon1)
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) * Math.sin(dLon / 2)
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2)
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-
-  return EARTH_RADIUS_METERS * c
+  return Math.round(R * c)
 }
 
-const getBearingDegrees = (from, to) => {
-  const lat1 = toRadians(from.lat)
-  const lat2 = toRadians(to.lat)
-  const dLon = toRadians(to.lng - from.lng)
-  const y = Math.sin(dLon) * Math.cos(lat2)
-  const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon)
-  return (toDegrees(Math.atan2(y, x)) + 360) % 360
-}
+const normalizePlaceType = (tags = {}) =>
+  tags.amenity || tags.tourism || tags.leisure || tags.shop || 'local place'
 
-const sendJson = (res, statusCode, payload) => {
-  const body = JSON.stringify(payload)
-  res.writeHead(statusCode, {
-    'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-  })
-  res.end(body)
-}
+const EXCLUDED_PLACE_TYPES = new Set([
+  'parking',
+  'fuel',
+  'laundry',
+  'car_wash',
+  'atm',
+  'bank',
+  'pharmacy',
+  'post_office',
+  'police',
+  'fire_station',
+  'townhall',
+  'courthouse',
+  'waste_basket',
+  'recycling',
+  'car_rental',
+  'bicycle_parking',
+  'bus_station',
+  'taxi',
+  'garage',
+  'storage',
+  'place_of_worship',
+  'convenience',
+  'massage',
+  'bicycle',
+  'wine',
+  'alcohol',
+  'tobacco',
+  'hairdresser',
+  'beauty',
+  'optician',
+  'insurance',
+  'real_estate',
+  'mobile_phone',
+  'copyshop',
+  'dry_cleaning',
+  'locksmith',
+])
 
-const parseBody = (req) =>
-  new Promise((resolve, reject) => {
-    const chunks = []
-
-    req.on('data', (chunk) => {
-      chunks.push(chunk)
-    })
-
-    req.on('end', () => {
-      if (!chunks.length) {
-        resolve({})
-        return
-      }
-
-      try {
-        const parsed = JSON.parse(Buffer.concat(chunks).toString('utf-8'))
-        resolve(parsed)
-      } catch (error) {
-        reject(new Error('Invalid JSON body'))
-      }
-    })
-
-    req.on('error', reject)
-  })
-
-const persistDb = () => {
-  if (!serverState.db) return
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true })
+const extractNamedOverpassPlaces = (elements, logPrefix = '') => {
+  const named = (elements || []).filter((node) => node.type === 'node' && node.tags?.name)
+  const mapped = named.map((node) => ({
+    id: `osm-${node.id}`,
+    name: node.tags.name,
+    type: normalizePlaceType(node.tags),
+    lat: Number(node.lat),
+    lon: Number(node.lon),
+    tags: node.tags,
+  }))
+  const filtered = mapped.filter((node) => !EXCLUDED_PLACE_TYPES.has(String(node.type || '').toLowerCase()))
+  if (logPrefix) {
+    console.log(`${logPrefix} raw=${named.length} after-filter=${filtered.length}`)
   }
-  const bytes = serverState.db.export()
-  fs.writeFileSync(dbPath, Buffer.from(bytes))
+  return filtered.slice(0, 15)
 }
 
-const runStatement = (sql, params = []) => {
-  const stmt = serverState.db.prepare(sql)
-  stmt.bind(params)
-  stmt.step()
-  stmt.free()
+const FALLBACK_COORD_OFFSETS = [
+  { lat: 0.001, lon: 0.001 },
+  { lat: -0.001, lon: 0.001 },
+  { lat: 0.001, lon: -0.001 },
+  { lat: -0.001, lon: -0.001 },
+  { lat: 0.002, lon: 0.002 },
+]
+
+const buildGroqPrompt = (interests, places) => {
+  const placesText = places
+    .map((place) => `- id: ${place.id} | ${place.name} (${place.type})`)
+    .join('\n')
+
+  return `You are a travel recommendation engine. The user has specifically told us they love: ${interests.join(', ')}. This is critical — only recommend places that directly match at least one of these interests. Do not recommend generic bars or restaurants unless Food or Nightlife is explicitly in their interests.
+
+Here are nearby places:
+${placesText}
+Pick exactly 5 that best match the user's stated interests. For each return: id, why_youll_love_it (one sentence max 20 words that mentions their specific interest by name).
+
+IMPORTANT: Return only a raw JSON array starting with [ and ending with ]. No markdown, no code blocks, no explanation text before or after the array. Only the JSON.
+
+Return only a valid JSON array, no markdown, no explanation.`
 }
 
-const queryRows = (sql, params = []) => {
-  const stmt = serverState.db.prepare(sql)
-  stmt.bind(params)
-  const rows = []
-  while (stmt.step()) {
-    rows.push(stmt.getAsObject())
+const parseGroqArray = (rawText) => {
+  const text = String(rawText || '')
+    .replace(/```json/gi, '')
+    .replace(/```/g, '')
+    .trim()
+
+  const firstBracket = text.indexOf('[')
+  const lastBracket = text.lastIndexOf(']')
+  if (firstBracket === -1 || lastBracket === -1 || lastBracket <= firstBracket) {
+    console.log('Raw Groq response:', rawText)
+    throw new Error('Groq response missing JSON array brackets')
   }
-  stmt.free()
-  return rows
-}
 
-const queryOne = (sql, params = []) => queryRows(sql, params)[0] || null
-
-const ensureColumn = (tableName, columnName, definitionSql) => {
-  const columns = queryRows(`PRAGMA table_info(${tableName})`)
-  const exists = columns.some((column) => column.name === columnName)
-  if (!exists) {
-    runStatement(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${definitionSql}`)
-  }
-}
-
-const ensureSchema = () => {
-  runStatement(`
-    CREATE TABLE IF NOT EXISTS places (
-      id INTEGER PRIMARY KEY,
-      name TEXT NOT NULL,
-      type TEXT NOT NULL,
-      distance_m INTEGER NOT NULL,
-      lat REAL NOT NULL,
-      lng REAL NOT NULL,
-      bearing_deg INTEGER NOT NULL
-    )
-  `)
-
-  runStatement(`
-    CREATE TABLE IF NOT EXISTS sessions (
-      id TEXT PRIMARY KEY,
-      interests_json TEXT NOT NULL,
-      alert_mode TEXT NOT NULL,
-      created_at INTEGER NOT NULL
-    )
-  `)
-
-  runStatement(`
-    CREATE TABLE IF NOT EXISTS saved_places (
-      session_id TEXT NOT NULL,
-      place_id TEXT NOT NULL,
-      place_name TEXT,
-      place_type TEXT,
-      place_description TEXT,
-      place_lat REAL,
-      place_lng REAL,
-      saved_at INTEGER NOT NULL,
-      PRIMARY KEY (session_id, place_id)
-    )
-  `)
-
-  runStatement(`
-    CREATE TABLE IF NOT EXISTS ai_notes (
-      place_id TEXT NOT NULL,
-      profile_key TEXT NOT NULL,
-      note TEXT NOT NULL,
-      updated_at INTEGER NOT NULL,
-      PRIMARY KEY (place_id, profile_key)
-    )
-  `)
-
-  ensureColumn('saved_places', 'place_name', 'TEXT')
-  ensureColumn('saved_places', 'place_type', 'TEXT')
-  ensureColumn('saved_places', 'place_description', 'TEXT')
-  ensureColumn('saved_places', 'place_lat', 'REAL')
-  ensureColumn('saved_places', 'place_lng', 'REAL')
-}
-
-const seedPlacesIfEmpty = () => {
-  const countRow = queryOne('SELECT COUNT(*) AS count FROM places')
-  if (Number(countRow?.count || 0) > 0) return
-
-  PLACE_SEED.forEach((place) => {
-    runStatement(
-      `INSERT INTO places (id, name, type, distance_m, lat, lng, bearing_deg)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [place.id, place.name, place.type, place.distance_m, place.lat, place.lng, place.bearing_deg],
-    )
-  })
-}
-
-const fallbackWhy = (place, interests) => {
-  const keyInterest = interests[0] || 'local spots'
-  return `${place.name} matches your ${keyInterest.toLowerCase()} vibe and is close enough to check out without breaking your walk.`
-}
-
-const requestJson = (url, options = {}, body = null) =>
-  new Promise((resolve, reject) => {
-    const request = https.request(url, options, (response) => {
-      let responseBody = ''
-      response.on('data', (chunk) => {
-        responseBody += chunk.toString()
-      })
-      response.on('end', () => {
-        if (response.statusCode && response.statusCode >= 400) {
-          reject(new Error(`HTTP ${response.statusCode}: ${responseBody.slice(0, 200)}`))
-          return
-        }
-
-        try {
-          resolve(JSON.parse(responseBody))
-        } catch (error) {
-          reject(error)
-        }
-      })
-    })
-
-    request.on('error', reject)
-    if (body) request.write(body)
-    request.end()
-  })
-
-const inferTypeFromTags = (tags = {}) =>
-  tags.amenity || tags.tourism || tags.shop || tags.leisure || tags.historic || 'Local Spot'
-
-const fetchNearbyPlacesFromOverpass = async (lat, lng) => {
-  const query = `
-    [out:json][timeout:20];
-    (
-      node(around:1200,${lat},${lng})["tourism"];
-      node(around:1200,${lat},${lng})["amenity"];
-      node(around:1200,${lat},${lng})["shop"];
-      node(around:1200,${lat},${lng})["leisure"];
-    );
-    out body 40;
-  `
-
-  const body = `data=${encodeURIComponent(query)}`
-  const payload = await requestJson(
-    'https://overpass-api.de/api/interpreter',
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Content-Length': Buffer.byteLength(body),
-      },
-    },
-    body,
-  )
-
-  const from = { lat, lng }
-  const normalized = (payload.elements || [])
-    .filter((element) => element.type === 'node' && element.tags?.name)
-    .map((element) => {
-      const to = { lat: Number(element.lat), lng: Number(element.lon) }
-      const distance = Math.round(getDistanceMeters(from, to))
-      const bearing = getBearingDegrees(from, to)
-      const type = inferTypeFromTags(element.tags)
-      return {
-        id: `osm-node-${element.id}`,
-        name: element.tags.name,
-        type: type
-          .split('_')
-          .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-          .join(' '),
-        distance,
-        bearing,
-        coordinates: to,
-        map: getMapPosition(distance, bearing),
-      }
-    })
-    .sort((a, b) => a.distance - b.distance)
-
-  return normalized.slice(0, 8)
-}
-
-const callGeminiWhy = (place, interests) =>
-  new Promise((resolve, reject) => {
-    if (!GEMINI_API_KEY) {
-      resolve(fallbackWhy(place, interests))
-      return
-    }
-
-    const prompt = `You are TripSync, a smart local guide.
-User interests: ${interests.join(', ') || 'General exploring'}.
-Place: ${place.name} (${place.type}), ${place.distance_m} meters away.
-Write ONE short recommendation sentence (max 18 words), natural and specific.`
-
-    const payload = JSON.stringify({
-      contents: [
-        {
-          parts: [{ text: prompt }],
-        },
-      ],
-      generationConfig: {
-        temperature: 0.8,
-        maxOutputTokens: 50,
-      },
-    })
-
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
-      GEMINI_MODEL,
-    )}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`
-
-    const request = https.request(
-      endpoint,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Content-Length': Buffer.byteLength(payload),
-        },
-      },
-      (response) => {
-        let body = ''
-        response.on('data', (chunk) => {
-          body += chunk.toString()
-        })
-        response.on('end', () => {
-          if (response.statusCode && response.statusCode >= 400) {
-            reject(new Error(`Gemini error ${response.statusCode}: ${body.slice(0, 200)}`))
-            return
-          }
-
-          try {
-            const parsed = JSON.parse(body)
-            const content = parsed?.candidates?.[0]?.content?.parts
-              ?.map((part) => part?.text || '')
-              .join(' ')
-              .trim()
-            if (!content) {
-              resolve(fallbackWhy(place, interests))
-              return
-            }
-            resolve(content)
-          } catch (error) {
-            reject(error)
-          }
-        })
-      },
-    )
-
-    request.on('error', reject)
-    request.write(payload)
-    request.end()
-  })
-
-const ensureAiNote = async (place, interests) => {
-  const profileKey = interests.slice().sort().join('|') || 'default'
-  const existing = queryOne('SELECT note FROM ai_notes WHERE place_id = ? AND profile_key = ?', [
-    place.id,
-    profileKey,
-  ])
-
-  if (existing?.note) return existing.note
-
-  let note = ''
+  const candidate = text.slice(firstBracket, lastBracket + 1)
   try {
-    note = await callGeminiWhy(place, interests)
-  } catch (error) {
-    console.warn('Gemini fallback triggered:', error.message)
-    note = fallbackWhy(place, interests)
+    const parsed = JSON.parse(candidate)
+    if (!Array.isArray(parsed)) {
+      console.log('Raw Groq response:', rawText)
+      throw new Error('Groq did not return an array')
+    }
+    return parsed
+  } catch (_error) {
+    console.log('Raw Groq response:', rawText)
+    throw new Error('Groq JSON parse failed')
   }
-
-  runStatement(
-    'INSERT OR REPLACE INTO ai_notes (place_id, profile_key, note, updated_at) VALUES (?, ?, ?, ?)',
-    [place.id, profileKey, note, Date.now()],
-  )
-  persistDb()
-  return note
 }
 
-const buildSuggestionPayload = async (sessionId, options = {}) => {
-  const session = queryOne('SELECT * FROM sessions WHERE id = ?', [sessionId])
-  if (!session) return null
-
-  const interests = JSON.parse(session.interests_json)
-  const liveLat = Number(options.lat)
-  const liveLng = Number(options.lng)
-  const hasLiveLocation = Number.isFinite(liveLat) && Number.isFinite(liveLng)
-
-  const dbRows = queryRows(
-    `
-    SELECT p.*, sp.saved_at
-    FROM places p
-    LEFT JOIN saved_places sp
-      ON sp.place_id = CAST(p.id AS TEXT) AND sp.session_id = ?
-    ORDER BY p.distance_m ASC
-  `,
-    [sessionId],
-  )
-
-  let basePlaces = dbRows.map((row) => ({
-    id: String(row.id),
-    name: row.name,
-    type: row.type,
-    distance: Number(row.distance_m),
-    bearing: Number(row.bearing_deg),
-    saved: Boolean(row.saved_at),
-    savedAt: row.saved_at ? formatRelative(Number(row.saved_at)) : null,
-    coordinates: { lat: Number(row.lat), lng: Number(row.lng) },
-    map: getMapPosition(Number(row.distance_m), Number(row.bearing_deg)),
+const fallbackGroqSelection = (interests, places) =>
+  places.slice(0, 5).map((place) => ({
+    id: place.id,
+    why_youll_love_it: `${place.name} fits your ${interests[0]?.toLowerCase() || 'local'} interests and is close to your pin.`,
   }))
 
-  if (hasLiveLocation) {
-    try {
-      const nearbyLive = await fetchNearbyPlacesFromOverpass(liveLat, liveLng)
-      if (nearbyLive.length) {
-        const savedRows = queryRows(
-          'SELECT place_id, saved_at FROM saved_places WHERE session_id = ?',
-          [sessionId],
-        )
-        const savedMap = new Map(savedRows.map((row) => [String(row.place_id), Number(row.saved_at)]))
+const mergeCuratedPicks = (rawPlaces, curatedPicks, interests) => {
+  const byId = new Map(rawPlaces.map((place) => [place.id, place]))
+  const used = new Set()
+  const merged = []
 
-        basePlaces = nearbyLive.map((place) => {
-          const savedAt = savedMap.get(place.id)
-          return {
-            ...place,
-            saved: Boolean(savedAt),
-            savedAt: savedAt ? formatRelative(savedAt) : null,
-          }
-        })
-      }
-    } catch (error) {
-      console.warn('Live nearby lookup failed:', error.message)
+  for (const pick of curatedPicks) {
+    const id = String(pick?.id || '')
+    if (!id || used.has(id) || !byId.has(id)) continue
+    const place = byId.get(id)
+    merged.push({
+      ...place,
+      why_youll_love_it:
+        typeof pick?.why_youll_love_it === 'string' && pick.why_youll_love_it.trim()
+          ? pick.why_youll_love_it.trim()
+          : `${place.name} matches your ${interests[0]?.toLowerCase() || 'local'} vibe and is near your pin.`,
+    })
+    used.add(id)
+    if (merged.length === 5) break
+  }
+
+  if (merged.length < 5) {
+    for (const place of rawPlaces) {
+      if (used.has(place.id)) continue
+      merged.push({
+        ...place,
+        why_youll_love_it: `${place.name} matches your ${interests[0]?.toLowerCase() || 'local'} vibe and is near your pin.`,
+      })
+      used.add(place.id)
+      if (merged.length === 5) break
     }
   }
 
-  const places = await Promise.all(
-    basePlaces.map(async (place) => {
-      const aiWhy = await ensureAiNote(
-        {
-          id: place.id,
-          name: place.name,
-          type: place.type,
-          distance_m: place.distance,
+  return merged
+}
+
+const queryPexelsImage = async (term) => {
+  if (!PEXELS_API_KEY) return FALLBACK_IMAGE
+  const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(term)}&per_page=3`
+  try {
+    const response = await fetch(url, {
+      headers: { Authorization: PEXELS_API_KEY },
+    })
+    if (!response.ok) return FALLBACK_IMAGE
+    const payload = await response.json()
+    return payload?.photos?.[0]?.src?.large || FALLBACK_IMAGE
+  } catch (_error) {
+    return FALLBACK_IMAGE
+  }
+}
+
+const queryPexelsImageForPlace = async (placeName, placeType) => {
+  if (!PEXELS_API_KEY) return FALLBACK_IMAGE
+  // Try exact place name first — gives most accurate photo
+  const nameResult = await queryPexelsImage(placeName)
+  if (nameResult !== FALLBACK_IMAGE) return nameResult
+  // Fall back to type-based search
+  const typeResult = await queryPexelsImage(placeType)
+  if (typeResult !== FALLBACK_IMAGE) return typeResult
+  // Last resort: generic interior/exterior by broad category
+  const broad = placeType.includes('park') || placeType.includes('garden')
+    ? 'city park outdoor'
+    : placeType.includes('museum') || placeType.includes('gallery')
+    ? 'art museum interior'
+    : placeType.includes('cafe') || placeType.includes('coffee')
+    ? 'cafe interior'
+    : placeType.includes('restaurant') || placeType.includes('food')
+    ? 'restaurant dining'
+    : placeType.includes('bar') || placeType.includes('pub')
+    ? 'bar nightlife'
+    : placeType.includes('shop') || placeType.includes('store')
+    ? 'retail shop street'
+    : 'city street local'
+  return queryPexelsImage(broad)
+}
+
+const buildOverpassQuery = (lat, lng) => `
+[out:json][timeout:10];
+(
+  node["name"]["amenity"](around:800,${lat},${lng});
+  node["name"]["tourism"](around:800,${lat},${lng});
+  node["name"]["leisure"](around:800,${lat},${lng});
+  node["name"]["shop"](around:800,${lat},${lng});
+);
+out body 20;
+`
+
+const fetchOverpassPlaces = async (lat, lng) => {
+  const overpassQuery = buildOverpassQuery(lat, lng)
+  for (const endpoint of OVERPASS_ENDPOINTS) {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), OVERPASS_TIMEOUT_MS)
+    try {
+      console.log(`Trying Overpass mirror: ${endpoint}`)
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
         },
-        interests,
-      )
+        body: `data=${encodeURIComponent(overpassQuery)}`,
+        signal: controller.signal,
+      })
+      clearTimeout(timeoutId)
+      if (!response.ok) {
+        throw new Error(`Overpass failed with ${response.status} from ${endpoint}`)
+      }
+      const payload = await response.json()
+      const places = extractNamedOverpassPlaces(payload.elements, `[${endpoint.split('/')[2]}]`)
+      if (places.length) {
+        console.log(`✓ Overpass mirror success: ${endpoint}`)
+        return { ok: true, places }
+      }
+      console.log(`Overpass mirror returned 0 usable places: ${endpoint}`)
+    } catch (error) {
+      clearTimeout(timeoutId)
+      console.error(`Overpass error (${endpoint}):`, error.message)
+    }
+  }
+  return { ok: false, places: [] }
+}
+
+const buildGroqGeoFallbackPrompt = (lat, lng, interests) => `The user is at coordinates ${lat}, ${lng}. Based on what city or region this likely is, invent 5 realistic-sounding local places that might exist there (cafes, parks, galleries, restaurants, landmarks). The user likes: ${interests.join(', ')}. Return a JSON array of exactly 5 objects, each with: name, type, why_youll_love_it (max 20 words). Return only valid JSON, no markdown.`
+
+const buildDefaultGeoFallback = (lat, lng, interests) =>
+  [
+    { name: 'Local Cafe', type: 'cafe' },
+    { name: 'City Park', type: 'park' },
+    { name: 'Art Gallery', type: 'gallery' },
+    { name: 'Restaurant Row', type: 'restaurant' },
+    { name: 'Bookshop', type: 'books' },
+  ].map((place, index) => ({
+    id: `fallback-${index + 1}`,
+    name: place.name,
+    type: place.type,
+    lat: lat + FALLBACK_COORD_OFFSETS[index].lat,
+    lon: lng + FALLBACK_COORD_OFFSETS[index].lon,
+    why_youll_love_it: `${place.name} fits your ${interests[0]?.toLowerCase() || 'local'} interests nearby.`,
+  }))
+
+const buildGroqFallbackPlaces = async (lat, lng, interests) => {
+  if (!groq) return buildDefaultGeoFallback(lat, lng, interests)
+  try {
+    const completion = await groq.chat.completions.create({
+      model: GROQ_MODEL,
+      messages: [{ role: 'user', content: buildGroqGeoFallbackPrompt(lat, lng, interests) }],
+      temperature: 0.6,
+    })
+    const content = completion.choices?.[0]?.message?.content || '[]'
+    const parsed = parseGroqArray(content).slice(0, 5)
+    if (!parsed.length) return buildDefaultGeoFallback(lat, lng, interests)
+    return parsed.map((place, index) => ({
+      id: `fallback-groq-${index + 1}`,
+      name: String(place?.name || `Local Spot ${index + 1}`),
+      type: String(place?.type || 'local place'),
+      lat: lat + FALLBACK_COORD_OFFSETS[index].lat,
+      lon: lng + FALLBACK_COORD_OFFSETS[index].lon,
+      why_youll_love_it:
+        typeof place?.why_youll_love_it === 'string' && place.why_youll_love_it.trim()
+          ? place.why_youll_love_it.trim()
+          : `A good nearby match for your ${interests[0]?.toLowerCase() || 'local'} interests.`,
+    }))
+  } catch (error) {
+    console.error('Groq fallback generation error:', error.message)
+    return buildDefaultGeoFallback(lat, lng, interests)
+  }
+}
+
+app.post('/api/onboard', (req, res) => {
+  const sessionId = req.body?.session_id
+  const interests = Array.isArray(req.body?.interests) ? req.body.interests : []
+
+  if (!sessionId || !interests.length) {
+    return res.status(400).json({ success: false, error: 'session_id and interests are required' })
+  }
+
+  upsertUserStmt.run(sessionId, JSON.stringify(interests))
+  return res.json({ success: true })
+})
+
+app.get('/api/discover', async (req, res) => {
+  const lat = Number(req.query.lat)
+  const lng = Number(req.query.lng)
+  const sessionId = String(req.query.session_id || '')
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || !sessionId) {
+    return res.status(400).json({ error: 'lat, lng, and session_id are required' })
+  }
+
+  const user = getUserStmt.get(sessionId)
+  const interests = user?.interests ? JSON.parse(user.interests) : null
+  console.log(`Session ID received: ${sessionId}`)
+  console.log(`Interests found: ${JSON.stringify(interests)}`)
+  if (!interests || !Array.isArray(interests) || !interests.length) {
+    console.log('WARNING: no interests found for this session')
+    return res.status(400).json({ error: 'Session not found. Please complete onboarding first.' })
+  }
+
+  const overpassResult = await fetchOverpassPlaces(lat, lng)
+  let curatedFive = []
+  let dataMode = 'demo'
+
+  if (overpassResult.ok) {
+    const rawPlaces = overpassResult.places
+    console.log(`Overpass success — ${rawPlaces.length} places found near ${lat},${lng}`)
+    console.log(`Overpass candidates: ${rawPlaces.map((p) => `${p.name} (${p.type})`).join(', ')}`)
+    dataMode = 'live'
+    let curated = []
+    if (groq) {
+      try {
+        const completion = await groq.chat.completions.create({
+          model: GROQ_MODEL,
+          messages: [{ role: 'user', content: buildGroqPrompt(interests, rawPlaces) }],
+          temperature: 0.4,
+        })
+        const content = completion.choices?.[0]?.message?.content || '[]'
+        curated = parseGroqArray(content)
+      } catch (error) {
+        console.error('Groq error:', error.message)
+        curated = fallbackGroqSelection(interests, rawPlaces)
+      }
+    } else {
+      curated = fallbackGroqSelection(interests, rawPlaces)
+    }
+    curatedFive = mergeCuratedPicks(rawPlaces, curated, interests)
+  } else {
+    console.log(`Overpass failed — using Groq-generated fallback for ${lat},${lng}`)
+    curatedFive = await buildGroqFallbackPlaces(lat, lng, interests)
+  }
+
+  const finalPlaces = await Promise.all(
+    curatedFive.map(async (pick) => {
+      const placeType = String(pick.type || 'local place')
+      const photoUrl = await queryPexelsImageForPlace(pick.name, placeType)
+      const distanceMeters = haversineMeters(lat, lng, Number(pick.lat), Number(pick.lon))
       return {
-        ...place,
-        why: aiWhy,
+        id: pick.id,
+        name: pick.name,
+        type: placeType,
+        why_youll_love_it: pick.why_youll_love_it,
+        lat: Number(pick.lat),
+        lon: Number(pick.lon),
+        distance_m: distanceMeters,
+        photo_url: photoUrl,
       }
     }),
   )
 
-  return {
-    session: {
-      id: session.id,
-      interests,
-      alertMode: session.alert_mode,
-    },
-    places,
-  }
-}
+  return res.json({ places: finalPlaces, data_mode: dataMode })
+})
 
-const resetDemo = () => {
-  runStatement('DELETE FROM saved_places')
-  runStatement('DELETE FROM sessions')
-  runStatement('DELETE FROM ai_notes')
-  persistDb()
-}
+app.get('/api/reset', (_req, res) => {
+  resetSavedStmt.run()
+  resetUsersStmt.run()
+  return res.json({ success: true })
+})
 
-const init = async () => {
-  const SQL = await initSqlJs({
-    locateFile: (file) => path.join(sqlJsDistPath, file),
-  })
-
-  if (fs.existsSync(dbPath)) {
-    const fileBuffer = fs.readFileSync(dbPath)
-    serverState.db = new SQL.Database(fileBuffer)
-  } else {
-    serverState.db = new SQL.Database()
-  }
-
-  ensureSchema()
-  seedPlacesIfEmpty()
-  persistDb()
-}
-
-const requestHandler = async (req, res) => {
-  if (req.method === 'OPTIONS') {
-    sendJson(res, 200, { ok: true })
-    return
-  }
-
-  const url = new URL(req.url || '/', `http://${req.headers.host}`)
-
-  if (req.method === 'GET' && url.pathname === '/api/health') {
-    sendJson(res, 200, {
-      ok: true,
-      dbPath: path.relative(projectRoot, dbPath),
-      geminiConfigured: Boolean(GEMINI_API_KEY),
-      geminiModel: GEMINI_MODEL,
-    })
-    return
-  }
-
-  if (req.method === 'POST' && url.pathname === '/api/reset') {
-    resetDemo()
-    sendJson(res, 200, { ok: true })
-    return
-  }
-
-  if (req.method === 'POST' && url.pathname === '/api/session') {
-    const body = await parseBody(req)
-    const interests = Array.isArray(body.interests) ? body.interests : []
-    const alertMode = body.alertMode === 'visual-only' ? 'visual-only' : 'voice-visual'
-    const sessionId = randomUUID()
-
-    runStatement(
-      'INSERT INTO sessions (id, interests_json, alert_mode, created_at) VALUES (?, ?, ?, ?)',
-      [sessionId, JSON.stringify(interests), alertMode, Date.now()],
-    )
-    persistDb()
-
-    sendJson(res, 201, { sessionId })
-    return
-  }
-
-  if (req.method === 'GET' && url.pathname === '/api/suggestions') {
-    const sessionId = url.searchParams.get('sessionId')
-    const lat = url.searchParams.get('lat')
-    const lng = url.searchParams.get('lng')
-    if (!sessionId) {
-      sendJson(res, 400, { error: 'sessionId is required' })
-      return
-    }
-    const payload = await buildSuggestionPayload(sessionId, { lat, lng })
-    if (!payload) {
-      sendJson(res, 404, { error: 'session not found' })
-      return
-    }
-    sendJson(res, 200, payload)
-    return
-  }
-
-  if (req.method === 'POST' && url.pathname === '/api/saved/toggle') {
-    const body = await parseBody(req)
-    const sessionId = body.sessionId
-    const place = body.place || {}
-    const placeId = String(place.id || '')
-
-    if (!sessionId || !placeId) {
-      sendJson(res, 400, { error: 'sessionId and place payload are required' })
-      return
-    }
-
-    const existing = queryOne('SELECT 1 FROM saved_places WHERE session_id = ? AND place_id = ?', [
-      sessionId,
-      placeId,
-    ])
-
-    if (existing) {
-      runStatement('DELETE FROM saved_places WHERE session_id = ? AND place_id = ?', [sessionId, placeId])
-    } else {
-      if (!place.name) {
-        sendJson(res, 400, { error: 'place.name is required when saving a place' })
-        return
-      }
-      runStatement(
-        `INSERT INTO saved_places
-        (session_id, place_id, place_name, place_type, place_description, place_lat, place_lng, saved_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          sessionId,
-          placeId,
-          place.name,
-          place.type || 'Local Spot',
-          place.why || '',
-          Number(place.coordinates?.lat || 0),
-          Number(place.coordinates?.lng || 0),
-          Date.now(),
-        ],
-      )
-    }
-
-    persistDb()
-    sendJson(res, 200, { saved: !existing })
-    return
-  }
-
-  if (req.method === 'GET' && url.pathname === '/api/saved') {
-    const sessionId = url.searchParams.get('sessionId')
-    if (!sessionId) {
-      sendJson(res, 400, { error: 'sessionId is required' })
-      return
-    }
-
-    const saved = queryRows(
-      `
-      SELECT
-        sp.place_id AS id,
-        sp.place_name AS name,
-        sp.place_type AS type,
-        sp.place_description AS description,
-        sp.saved_at
-      FROM saved_places sp
-      WHERE sp.session_id = ?
-      ORDER BY sp.saved_at DESC
-      `,
-      [sessionId],
-    ).map((row) => ({
-      id: String(row.id),
-      name: row.name,
-      type: row.type,
-      description: row.description || `${row.name} is a strong match for this walk and can be revisited later.`,
-      savedAt: formatRelative(Number(row.saved_at)),
-    }))
-
-    sendJson(res, 200, { places: saved })
-    return
-  }
-
-  sendJson(res, 404, { error: 'Not found' })
-}
-
-const start = async () => {
-  await init()
-  const server = createServer((req, res) => {
-    requestHandler(req, res).catch((error) => {
-      sendJson(res, 500, { error: error.message || 'Unexpected server error' })
-    })
-  })
-
-  server.listen(PORT, () => {
-    console.log(`TripSync API listening on http://127.0.0.1:${PORT}`)
-  })
-}
-
-start().catch((error) => {
-  console.error('Failed to start TripSync API', error)
-  process.exit(1)
+app.listen(PORT, () => {
+  console.log(`TripSync API running at http://127.0.0.1:${PORT}`)
 })

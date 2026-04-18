@@ -1,8 +1,7 @@
 import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom'
 import IntroScreen from './screens/IntroScreen'
 import OnboardingScreen from './screens/OnboardingScreen'
-import WalkingScreen from './screens/WalkingScreen'
-import SavedScreen from './screens/SavedScreen'
+import DiscoverScreen from './screens/DiscoverScreen'
 
 function AnimatedRoutes() {
   const location = useLocation()
@@ -12,8 +11,7 @@ function AnimatedRoutes() {
       <Routes location={location}>
         <Route path="/" element={<IntroScreen />} />
         <Route path="/onboarding" element={<OnboardingScreen />} />
-        <Route path="/walking" element={<WalkingScreen />} />
-        <Route path="/saved" element={<SavedScreen />} />
+        <Route path="/discover" element={<DiscoverScreen />} />
       </Routes>
     </div>
   )

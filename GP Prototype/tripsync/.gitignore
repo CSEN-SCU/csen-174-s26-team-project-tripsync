@@ -12,6 +12,7 @@ dist
 dist-ssr
 *.local
 .env
+server/.env
 server/data/*.sqlite
 
 # Editor directories and files

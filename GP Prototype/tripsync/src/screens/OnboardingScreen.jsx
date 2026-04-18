@@ -1,28 +1,35 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { createSession } from '../lib/api'
+import { useEffect, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { clearSessionId, onboard, setInterests, setSessionId } from '../lib/api'
 
 const interests = [
   'Food',
   'Coffee',
   'Art',
   'History',
-  'Shopping',
   'Parks',
   'Architecture',
   'Nightlife',
   'Hidden Gems',
-  'Local Culture',
   'Street Food',
+  'Shopping',
   'Music',
+  'Local Culture',
 ]
 
 function OnboardingScreen() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [selectedInterests, setSelectedInterests] = useState([])
-  const [alertMode, setAlertMode] = useState('voice-visual')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formError, setFormError] = useState('')
+
+  useEffect(() => {
+    clearSessionId()
+    if (location.state?.message) {
+      setFormError(location.state.message)
+    }
+  }, [location.state?.message])
 
   const hasMinimumInterests = selectedInterests.length >= 3
   const progressWidth = `${Math.min((selectedInterests.length / 6) * 100, 100)}%`
@@ -37,163 +44,73 @@ function OnboardingScreen() {
     })
   }
 
-  const handleStart = async () => {
+  const handleSubmit = async () => {
     if (!hasMinimumInterests || isSubmitting) return
-
     try {
       setIsSubmitting(true)
-      const sessionId = await createSession({
-        interests: selectedInterests,
-        alertMode,
-      })
-      navigate('/walking', { state: { sessionId } })
-    } catch (error) {
-      setFormError('Could not start demo session. Make sure the API server is running.')
+      const sessionId = crypto.randomUUID()
+      await onboard({ sessionId, interests: selectedInterests })
+      setSessionId(sessionId)
+      setInterests(selectedInterests)
+      navigate('/discover', { state: { sessionId } })
+    } catch (_error) {
+      setFormError('Onboarding failed. Make sure backend server is running on port 3001.')
     } finally {
       setIsSubmitting(false)
     }
   }
 
   return (
-    <main className="screen" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', paddingTop: '30px' }}>
+    <main className="screen onboarding-screen">
       <div className="progress-track" aria-hidden="true">
         <div className="progress-fill" style={{ width: progressWidth }} />
       </div>
 
-      <div style={{ flex: 1, display: 'grid', gap: '20px', alignContent: 'start', maxWidth: '860px' }}>
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          aria-label="Go back"
-          style={{
-            width: '40px',
-            height: '40px',
-            border: '1px solid var(--border-color)',
-            borderRadius: '10px',
-            background: 'transparent',
-            color: 'var(--text-primary)',
-            fontSize: '20px',
-            cursor: 'pointer',
-          }}
-        >
-          ←
-        </button>
+      <button className="back-btn" type="button" onClick={() => navigate('/')}>
+        ←
+      </button>
 
-        <div>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '10px' }}>
-            Step 1 of 2
-          </p>
-          <h1 style={{ fontSize: '32px', fontWeight: 700, lineHeight: 1.1, marginBottom: '10px' }}>
-            What do you love?
-          </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '16px', lineHeight: 1.5 }}>
-            We&apos;ll use this to personalize every suggestion.
-          </p>
-        </div>
+      <header className="screen-header">
+        <p className="subtle-label">What are you into?</p>
+        <h1>Pick your interests</h1>
+        <p className="subtle-copy">Select at least 3 so TripSync can curate your nearby places.</p>
+      </header>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '10px' }}>
-          {interests.map((interest, index) => {
-            const isSelected = selectedInterests.includes(interest)
+      <section className="interest-grid">
+        {interests.map((interest, index) => {
+          const selected = selectedInterests.includes(interest)
+          return (
+            <button
+              key={interest}
+              type="button"
+              className={`interest-pill pill-enter ${selected ? 'selected' : ''}`}
+              style={{ animationDelay: `${index * 30}ms` }}
+              onClick={() => toggleInterest(interest)}
+            >
+              {interest}
+            </button>
+          )
+        })}
+      </section>
 
-            return (
-              <button
-                key={interest}
-                type="button"
-                onClick={() => toggleInterest(interest)}
-                className="pill pill-enter"
-                style={{
-                  animationDelay: `${index * 30}ms`,
-                  minHeight: '44px',
-                  border: isSelected ? 'none' : '1px solid var(--border-color)',
-                  backgroundColor: isSelected ? 'var(--accent)' : 'transparent',
-                  color: isSelected ? 'var(--bg-primary)' : 'var(--text-primary)',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  lineHeight: 1.2,
-                  textAlign: 'center',
-                  padding: '10px',
-                }}
-              >
-                {interest}
-              </button>
-            )
-          })}
-        </div>
-
-        {hasMinimumInterests && (
-          <section style={{ marginTop: '4px' }}>
-            <h2 style={{ fontSize: '24px', fontWeight: 700, marginBottom: '12px' }}>
-              How do you want alerts?
-            </h2>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px' }}>
-              <button
-                type="button"
-                onClick={() => setAlertMode('voice-visual')}
-                style={{
-                  textAlign: 'left',
-                  padding: '16px',
-                  borderRadius: '14px',
-                  border:
-                    alertMode === 'voice-visual'
-                      ? '1px solid var(--accent)'
-                      : '1px solid var(--border-color)',
-                  background: 'var(--bg-card)',
-                  color: 'var(--text-primary)',
-                  cursor: 'pointer',
-                }}
-              >
-                <p style={{ fontSize: '20px', marginBottom: '8px' }}>🔊</p>
-                <p style={{ fontSize: '16px', fontWeight: 600, marginBottom: '6px' }}>Voice + Visual</p>
-                <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                  Hear suggestions as you walk
-                </p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setAlertMode('visual-only')}
-                style={{
-                  textAlign: 'left',
-                  padding: '16px',
-                  borderRadius: '14px',
-                  border:
-                    alertMode === 'visual-only'
-                      ? '1px solid var(--accent)'
-                      : '1px solid var(--border-color)',
-                  background: 'var(--bg-card)',
-                  color: 'var(--text-primary)',
-                  cursor: 'pointer',
-                }}
-              >
-                <p style={{ fontSize: '20px', marginBottom: '8px' }}>👁</p>
-                <p style={{ fontSize: '16px', fontWeight: 600, marginBottom: '6px' }}>Visual only</p>
-                <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                  See suggestions on screen
-                </p>
-              </button>
-            </div>
-          </section>
-        )}
-      </div>
-
-      <div style={{ paddingTop: '20px' }}>
-        {formError ? (
-          <p style={{ color: '#ff7f7f', marginBottom: '8px', fontSize: '13px' }}>{formError}</p>
+      <footer className="onboarding-footer">
+        {formError ? <p className="error-copy">{formError}</p> : null}
+        {!hasMinimumInterests ? (
+          <p className="subtle-copy">Choose at least 3 interests to continue.</p>
         ) : null}
         <button
           type="button"
           className="btn-primary"
+          onClick={handleSubmit}
           disabled={!hasMinimumInterests || isSubmitting}
-          onClick={handleStart}
           style={{
             opacity: hasMinimumInterests && !isSubmitting ? 1 : 0.45,
             cursor: hasMinimumInterests && !isSubmitting ? 'pointer' : 'not-allowed',
           }}
         >
-          {isSubmitting ? 'Starting...' : "Let's Go"}
+          {isSubmitting ? 'Saving...' : 'Find Places'}
         </button>
-      </div>
+      </footer>
     </main>
   )
 }

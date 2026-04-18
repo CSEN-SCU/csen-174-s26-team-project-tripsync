@@ -1,4 +1,5 @@
 const SESSION_KEY = 'tripsync_session_id'
+const INTERESTS_KEY = 'tripsync_interests'
 
 const request = async (path, options = {}) => {
   const response = await fetch(path, {
@@ -11,7 +12,10 @@ const request = async (path, options = {}) => {
 
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}))
-    throw new Error(payload.error || 'Request failed')
+    const error = new Error(payload.error || 'Request failed')
+    error.status = response.status
+    error.payload = payload
+    throw error
   }
 
   return response.json()
@@ -25,36 +29,40 @@ export const setSessionId = (sessionId) => {
 
 export const clearSessionId = () => {
   window.localStorage.removeItem(SESSION_KEY)
+  window.localStorage.removeItem(INTERESTS_KEY)
+}
+
+export const setInterests = (interests) => {
+  window.localStorage.setItem(INTERESTS_KEY, JSON.stringify(interests))
+}
+
+export const getInterests = () => {
+  try {
+    const raw = window.localStorage.getItem(INTERESTS_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch (_error) {
+    return []
+  }
 }
 
 export const resetDemo = async () => {
-  await request('/api/reset', { method: 'POST' })
+  await request('/api/reset')
   clearSessionId()
 }
 
-export const createSession = async ({ interests, alertMode }) => {
-  const payload = await request('/api/session', {
+export const onboard = async ({ sessionId, interests }) =>
+  request('/api/onboard', {
     method: 'POST',
-    body: JSON.stringify({ interests, alertMode }),
+    body: JSON.stringify({ session_id: sessionId, interests }),
   })
-  setSessionId(payload.sessionId)
-  return payload.sessionId
-}
 
 export const fetchSuggestions = async (sessionId, location) => {
-  const params = new URLSearchParams({ sessionId })
+  const params = new URLSearchParams({ session_id: sessionId })
   if (location?.lat && location?.lng) {
     params.set('lat', String(location.lat))
     params.set('lng', String(location.lng))
   }
-  return request(`/api/suggestions?${params.toString()}`)
+  const requestPath = `/api/discover?${params.toString()}`
+  console.log('Discover request path:', requestPath)
+  return request(requestPath)
 }
-
-export const toggleSavedPlace = async ({ sessionId, place }) =>
-  request('/api/saved/toggle', {
-    method: 'POST',
-    body: JSON.stringify({ sessionId, place }),
-  })
-
-export const fetchSavedPlaces = async (sessionId) =>
-  request(`/api/saved?sessionId=${encodeURIComponent(sessionId)}`)
