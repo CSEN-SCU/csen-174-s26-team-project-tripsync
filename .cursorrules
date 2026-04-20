@@ -1,0 +1,11 @@
+# TripSync (CSEN 174) — team repository
+
+## Scope
+- Respect each teammate’s divergent prototype under `prototypes/<name>/`.
+- Prefer small, focused changes; avoid unrelated drive-by refactors.
+
+## Secrets
+- Never commit `.env` or API keys. Use `*.env.example` and document variables in the prototype README.
+
+## Prototype
+- GP Hora app: `prototypes/gurprasaadhora/tripsync` (Vite + React, Express + SQLite + Groq). Align feature ideas with `product-vision.md` when the team updates it.
