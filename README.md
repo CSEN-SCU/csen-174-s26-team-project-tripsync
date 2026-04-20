@@ -33,3 +33,8 @@ npm run dev      # terminal 2 — http://127.0.0.1:5173
 ```
 
 More detail: [`prototypes/gurprasaadhora/tripsync/README.md`](./prototypes/gurprasaadhora/tripsync/README.md).
+- GP Hora
+
+- Rosalie Wessels
+
+- Daniel Louie

@@ -1,0 +1,53 @@
+:root {
+  --bg: #0b1020;
+  --panel: #121a30;
+  --border: rgba(255, 255, 255, 0.08);
+  --text: #e8ecff;
+  --muted: #8b95b8;
+  --accent: #f4b942;
+  --accent-dim: rgba(244, 185, 66, 0.2);
+  --ok: #5ad4a8;
+  --danger: #ff6b7a;
+  --radius: 14px;
+  font-family: "DM Sans", system-ui, sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.leaflet-container {
+  font-family: inherit;
+  height: 100%;
+  width: 100%;
+  min-height: 200px;
+  background: #1e293b;
+}
+
+/* Leaflet’s default .leaflet-div-icon frame can hide custom divIcons (no dots on map). */
+.leaflet-div-icon.orbit-marker-dot,
+.leaflet-div-icon.orbit-marker-star,
+.leaflet-div-icon.orbit-marker-user {
+  background: transparent !important;
+  border: none !important;
+}

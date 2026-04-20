@@ -9,3 +9,23 @@
 
 ## Prototype
 - GP Hora app: `prototypes/gurprasaadhora/tripsync` (Vite + React, Express + SQLite + Groq). Align feature ideas with `product-vision.md` when the team updates it.
+# Orbit - AI-Powered Interactive Travel Guide
+
+## Product Vision
+See `product-vision.md` for the full product vision statement.
+
+## Project Overview
+Orbit is an AI-powered travel companion that surfaces nearby points of interest and delivers real-time, audio-based tour guide experiences. Unlike static map apps, Orbit adapts to the user's location and interests to proactively surface relevant places and provide conversational, context-aware insights.
+
+## Repository Structure
+- `product-vision.md` — Shared product vision (Moore's template)
+- `prototypes/` — Individual prototype directories per team member
+  - Each prototype is independent and may use a different tech stack
+  - Each has its own `.env.example` documenting required environment variables
+- `.cursor/skills/` — Cursor skills for storyboarding, frontend design, etc.
+
+## Conventions
+- Never commit `.env` files or API keys
+- Each prototype lives in `prototypes/<name>/` with its own dependencies
+- Prefer clear, conversational UI copy that matches Orbit's friendly tone
+- Audio-first interaction patterns are a core product differentiator
