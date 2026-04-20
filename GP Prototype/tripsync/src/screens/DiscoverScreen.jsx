@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { clearSessionId, fetchSuggestions, getInterests, getSessionId, resetDemo } from '../lib/api'
 
 const SF_CENTER = { lat: 37.7749, lng: -122.4194 }
-
-const fallbackImage = 'https://placehold.co/800x500/161616/00e5a0?text=TripSync'
+const FALLBACK_IMAGE = 'https://placehold.co/800x500/10101e/00e5a0?text=TripSync'
 
 function LoadingCards() {
   return (
@@ -18,6 +17,57 @@ function LoadingCards() {
           <div className="skeleton-line skeleton-copy short" />
         </article>
       ))}
+    </div>
+  )
+}
+
+function PlaceCard({ place, isFlipped, onToggle }) {
+  const distance = Math.round(place.distance_m || 0)
+  return (
+    <div
+      className={`card-flipper${isFlipped ? ' flipped' : ''}`}
+      onClick={onToggle}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => e.key === 'Enter' && onToggle()}
+    >
+      <div className="card-inner">
+
+        {/* ── FRONT ── */}
+        <div className="card-front">
+          <img
+            src={place.photo_url || FALLBACK_IMAGE}
+            alt={place.name}
+            className="place-photo"
+            onError={(e) => { e.currentTarget.src = FALLBACK_IMAGE }}
+          />
+          <div className="place-photo-overlay">
+            <div className="place-overlay-content">
+              <div className="place-meta">
+                <span className="category-pill">{place.type}</span>
+                <span className="distance-copy">{distance}m away</span>
+              </div>
+              <h2 className="place-name">{place.name}</h2>
+            </div>
+          </div>
+        </div>
+
+        {/* ── BACK ── */}
+        <div className="card-back">
+          <div className="card-back-header">
+            <span className="category-pill">{place.type}</span>
+            <span className="distance-copy">{distance}m away</span>
+          </div>
+          <h3 className="card-back-name">{place.name}</h3>
+          {place.about
+            ? <p className="about-copy">{place.about}</p>
+            : null
+          }
+          <p className="why-copy">✦&nbsp;{place.why_youll_love_it}</p>
+          <span className="flip-hint">tap to flip back</span>
+        </div>
+
+      </div>
     </div>
   )
 }
@@ -36,14 +86,13 @@ function DiscoverScreen() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
   const [dataMode, setDataMode] = useState('demo')
+  const [cityName, setCityName] = useState('')
+  const [expandedId, setExpandedId] = useState(null)
 
   useEffect(() => {
     const storedSessionId = getSessionId()
     if (!storedSessionId || !storedSessionId.trim() || storedSessionId === 'missing-session') {
-      navigate('/onboarding', {
-        replace: true,
-        state: { message: 'Session expired, please start again' },
-      })
+      navigate('/onboarding', { replace: true, state: { message: 'Session expired, please start again' } })
       return
     }
     setSessionId(storedSessionId)
@@ -53,15 +102,32 @@ function DiscoverScreen() {
 
   useEffect(() => {
     if (!sessionReady || !sessionId) return
-
     if (!window.L || mapRef.current || !mapContainerRef.current) return
 
-    const map = window.L.map(mapContainerRef.current).setView([SF_CENTER.lat, SF_CENTER.lng], 14)
-    window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors',
+    const map = window.L.map(mapContainerRef.current, { zoomControl: true }).setView(
+      [SF_CENTER.lat, SF_CENTER.lng],
+      14,
+    )
+
+    window.L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
+      maxZoom: 19,
     }).addTo(map)
 
-    const marker = window.L.marker([SF_CENTER.lat, SF_CENTER.lng]).addTo(map)
+    const pinIcon = window.L.divIcon({
+      className: '',
+      html: `<div style="
+        width: 18px; height: 18px;
+        background: #00e5a0;
+        border-radius: 50%;
+        border: 2.5px solid #fff;
+        box-shadow: 0 0 0 4px rgba(0,229,160,0.25), 0 2px 8px rgba(0,0,0,0.5);
+      "></div>`,
+      iconSize: [18, 18],
+      iconAnchor: [9, 9],
+    })
+
+    const marker = window.L.marker([SF_CENTER.lat, SF_CENTER.lng], { icon: pinIcon }).addTo(map)
 
     map.on('click', (event) => {
       const nextLocation = { lat: event.latlng.lat, lng: event.latlng.lng }
@@ -80,20 +146,17 @@ function DiscoverScreen() {
     const loadPlaces = async () => {
       try {
         setIsLoading(true)
-        console.log('Session ID from localStorage:', sessionId)
         const payload = await fetchSuggestions(sessionId, pinLocation)
         if (cancelled) return
         setPlaces(payload.places || [])
         setDataMode(payload.data_mode === 'live' ? 'live' : 'demo')
+        setCityName(payload.city_name || '')
         setError('')
-      } catch (error) {
+      } catch (err) {
         if (cancelled) return
-        if (error?.status === 400 && String(error.message).includes('Session not found')) {
+        if (err?.status === 400 && String(err.message).includes('Session not found')) {
           clearSessionId()
-          navigate('/onboarding', {
-            replace: true,
-            state: { message: 'Session expired, please start again' },
-          })
+          navigate('/onboarding', { replace: true, state: { message: 'Session expired, please start again' } })
           return
         }
         setError('Could not fetch curated places right now.')
@@ -103,54 +166,44 @@ function DiscoverScreen() {
     }
 
     loadPlaces()
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [navigate, pinLocation, sessionId, sessionReady])
 
   if (!sessionReady) {
     return (
       <main className="screen discover-screen">
         <header className="discover-topbar">
-          <h1>TripSync</h1>
+          <span className="wordmark">Trip<span>Sync</span></span>
         </header>
       </main>
     )
   }
 
   return (
-    <main className="screen discover-screen">
+    <main className="screen discover-screen route-fade">
       <header className="discover-topbar">
-        <h1>TripSync</h1>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <span className="wordmark">Trip<span>Sync</span></span>
+
+        <div className="topbar-actions">
           <button
             type="button"
-            className="btn-ghost"
-            style={{ width: 'auto', height: '36px', padding: '0 14px', fontSize: '13px' }}
-            onClick={() => {
-              clearSessionId()
-              navigate('/onboarding', { replace: true })
-            }}
+            className="topbar-btn ghost"
+            onClick={() => { clearSessionId(); navigate('/onboarding', { replace: true }) }}
           >
             Start Over
           </button>
           <button
             type="button"
-            className="btn-primary"
-            style={{ width: 'auto', height: '36px', padding: '0 14px', fontSize: '13px' }}
-            onClick={async () => {
-              await resetDemo()
-              navigate('/', { replace: true })
-            }}
+            className="topbar-btn accent"
+            onClick={async () => { await resetDemo(); navigate('/', { replace: true }) }}
           >
             Reset Demo
           </button>
         </div>
+
         <div className="interest-row">
           {interests.map((interest) => (
-            <span key={interest} className="pill">
-              {interest}
-            </span>
+            <span key={interest} className="pill">{interest}</span>
           ))}
         </div>
       </header>
@@ -158,35 +211,38 @@ function DiscoverScreen() {
       <section className="discover-layout">
         <div className="map-column">
           <div ref={mapContainerRef} className="map-shell" />
-          <p className="map-hint">Click anywhere on the map to set your location pin.</p>
+          <p className="map-hint">
+            {cityName
+              ? <><span className="map-city">Pinned in <strong>{cityName}</strong> — </span>click the map to move your pin</>
+              : 'Click anywhere on the map to move your location pin'}
+          </p>
         </div>
+
         <div className="cards-column">
-          <div className={`data-mode-badge ${dataMode === 'live' ? 'live' : 'demo'}`}>
-            {dataMode === 'live' ? 'Live data' : 'Demo mode'}
+          <div className="cards-header">
+            <span className="cards-title">
+              {cityName ? `Near you in ${cityName}` : 'Nearby places'}
+            </span>
+            <div className={`data-mode-badge ${dataMode}`}>
+              {dataMode === 'live' ? 'Live data' : 'Demo mode'}
+            </div>
           </div>
+
           {isLoading ? <LoadingCards /> : null}
-          {!isLoading && error ? <div className="card error-card">{error}</div> : null}
+          {!isLoading && error ? (
+            <div className="card" style={{ padding: '20px', color: 'var(--danger)' }}>{error}</div>
+          ) : null}
           {!isLoading && !error ? (
             <div className="cards-list">
               {places.map((place) => (
-                <article key={place.id || `${place.name}-${place.lat}-${place.lon}`} className="place-card">
-                  <img
-                    src={place.photo_url || fallbackImage}
-                    alt={place.name}
-                    className="place-photo"
-                    onError={(event) => {
-                      event.currentTarget.src = fallbackImage
-                    }}
-                  />
-                  <div className="place-body">
-                    <h2>{place.name}</h2>
-                    <div className="place-meta">
-                      <span className="category-pill">{place.type}</span>
-                      <span className="distance-copy">{Math.round(place.distance_m || 0)}m away</span>
-                    </div>
-                    <p className="why-copy">{place.why_youll_love_it}</p>
-                  </div>
-                </article>
+                <PlaceCard
+                  key={place.id || `${place.name}-${place.lat}`}
+                  place={place}
+                  isFlipped={expandedId === (place.id || place.name)}
+                  onToggle={() => setExpandedId(
+                    expandedId === (place.id || place.name) ? null : (place.id || place.name)
+                  )}
+                />
               ))}
             </div>
           ) : null}

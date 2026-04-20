@@ -12,7 +12,9 @@ const interests = [
   'Nightlife',
   'Hidden Gems',
   'Street Food',
-  'Shopping',
+  'Adventure',
+  'Viewpoints',
+  'Hiking',
   'Music',
   'Local Culture',
 ]

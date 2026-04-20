@@ -1,6 +1,6 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { resetDemo } from '../lib/api'
-import { useState } from 'react'
 
 function IntroScreen() {
   const navigate = useNavigate()
@@ -18,35 +18,38 @@ function IntroScreen() {
 
   return (
     <main
-      className="screen"
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        gap: '26px',
-        maxWidth: '960px',
-      }}
+      className="screen route-fade"
+      style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '40px', maxWidth: '880px' }}
     >
-      <p style={{ color: 'var(--accent)', letterSpacing: '0.24em', fontWeight: 700, fontSize: '12px' }}>
-        TRIPSYNC
-      </p>
-      <section className="card" style={{ display: 'grid', gap: '18px', padding: '28px' }}>
-        <h1 style={{ fontSize: '52px', fontWeight: 700, lineHeight: 1.02 }}>TripSync</h1>
-        <h2 style={{ fontSize: '24px', fontWeight: 600, color: 'var(--accent)' }}>
-          Your city, curated for you as you walk
-        </h2>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '17px', lineHeight: 1.7 }}>
-          TripSync is for gallery walk demo visitors who want instant local recommendations without typing searches.
-          It solves the “where do I go now?” problem by combining onboarding preferences, a map pin, and AI curation.
+      <p className="intro-wordmark">TripSync</p>
+
+      <div style={{ display: 'grid', gap: '20px' }}>
+        <h1 className="intro-headline">
+          Your city,<br />
+          <span style={{ color: 'var(--accent)' }}>curated for you.</span>
+        </h1>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '18px', lineHeight: 1.65, maxWidth: '520px' }}>
+          Drop a pin anywhere on the map. TripSync reads your interests and uses AI to surface
+          the five most personally relevant places near you — with photos and a reason why you'll love each one.
         </p>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '15px', lineHeight: 1.7 }}>
-          How to use: tap Get Started, choose at least 3 interests, set your location pin on the map, and review
-          curated places with photos and personalized reasons.
-        </p>
-      </section>
-      <section style={{ display: 'grid', gap: '10px', maxWidth: '560px' }}>
+      </div>
+
+      <div style={{ display: 'grid', gap: '14px' }}>
+        {[
+          'Tell us what you love — food, art, parks, hidden gems, and more',
+          'Drop a pin anywhere to set your location',
+          'AI curates 5 nearby places matched to your taste',
+        ].map((text) => (
+          <div key={text} className="intro-feature">
+            <div className="intro-feature-dot" />
+            <span>{text}</span>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: 'grid', gap: '10px', maxWidth: '400px' }}>
         <button type="button" className="btn-primary" onClick={handleStart} disabled={isResetting}>
-          {isResetting ? 'Resetting demo...' : 'Get Started'}
+          {isResetting ? 'Starting…' : 'Get Started →'}
         </button>
         <button
           type="button"
@@ -56,10 +59,11 @@ function IntroScreen() {
             await resetDemo()
             setIsResetting(false)
           }}
+          disabled={isResetting}
         >
           Reset Demo Data
         </button>
-      </section>
+      </div>
     </main>
   )
 }
