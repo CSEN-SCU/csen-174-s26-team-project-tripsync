@@ -5,7 +5,8 @@
 ## Team
 
 - Kieran Greeley
-- GP Hora 
+- GP Hora
 - Rosalie Wessels
-
 - Daniel Louie
+- Iker Mendiburu
+
