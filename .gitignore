@@ -1,3 +1,24 @@
+# Secrets — never commit real API keys
+.env
+**/.env
+!.env.example
+!**/.env.example
+
+# Dependencies and build output
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+.vite/
+**/.vite/
+
+# Local databases
+*.sqlite
+**/*.sqlite
+
+*.log
+.DS_Store
+Thumbs.db
 # Environment variables (API keys, secrets)
 .env
 .env.local
