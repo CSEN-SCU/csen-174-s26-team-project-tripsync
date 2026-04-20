@@ -8,3 +8,7 @@
 - Kieran Greeley
 
 - GP Hora
+
+- Rosalie Wessels
+
+- Daniel Louie
