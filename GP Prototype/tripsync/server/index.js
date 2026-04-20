@@ -32,6 +32,9 @@ const OVERPASS_ENDPOINTS = [
 ]
 const OVERPASS_TIMEOUT_MS = 18_000
 const FALLBACK_IMAGE = 'https://placehold.co/800x500/161616/00e5a0?text=TripSync'
+/** Default: Groq geo-aware curation only (matches gallery demo quality). Set TRIPSYNC_USE_LIVE_OVERPASS=1 to use OSM Overpass + Groq merge. */
+const USE_LIVE_OVERPASS =
+  process.env.TRIPSYNC_USE_LIVE_OVERPASS === '1' || process.env.TRIPSYNC_USE_LIVE_OVERPASS === 'true'
 
 const groq = GROQ_API_KEY ? new Groq({ apiKey: GROQ_API_KEY }) : null
 const db = new Database(dbPath)
@@ -76,6 +79,48 @@ const haversineMeters = (lat1, lon1, lat2, lon2) => {
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
   return Math.round(R * c)
 }
+
+const DEFAULT_PROFILE = {
+  v: 1,
+  interests: [],
+  energy: 'balanced',
+  pace: 'mix',
+  avoid_chains: true,
+  note: '',
+}
+
+const parseUserProfile = (rawJson) => {
+  if (!rawJson || typeof rawJson !== 'string') return null
+  try {
+    const data = JSON.parse(rawJson)
+    if (Array.isArray(data)) {
+      return { ...DEFAULT_PROFILE, interests: data.filter(Boolean) }
+    }
+    if (data && typeof data === 'object' && Array.isArray(data.interests)) {
+      return {
+        ...DEFAULT_PROFILE,
+        ...data,
+        interests: data.interests.filter(Boolean),
+        note: String(data.note || '').slice(0, 220),
+        energy: ['calm', 'balanced', 'high'].includes(data.energy) ? data.energy : DEFAULT_PROFILE.energy,
+        pace: ['wander', 'mix', 'highlights'].includes(data.pace) ? data.pace : DEFAULT_PROFILE.pace,
+        avoid_chains: data.avoid_chains !== false,
+      }
+    }
+    return null
+  } catch (_error) {
+    return null
+  }
+}
+
+const profileSummaryForLog = (profile) =>
+  JSON.stringify({
+    interests: profile.interests,
+    energy: profile.energy,
+    pace: profile.pace,
+    avoid_chains: profile.avoid_chains,
+    has_note: Boolean(profile.note?.trim()),
+  })
 
 const normalizePlaceType = (tags = {}) =>
   tags.amenity || tags.tourism || tags.leisure || tags.historic || 'local place'
@@ -136,46 +181,68 @@ const FALLBACK_COORD_OFFSETS = [
   { lat: 0.002, lon: 0.002 },
 ]
 
-const buildGroqPrompt = (interests, places, cityName = null) => {
+const energyCopy = {
+  calm: 'They want a steady, low-rush day — quieter corners, room to breathe, minimal sensory overload.',
+  balanced: 'They want a balanced day — a mix of energy without feeling rushed or tourist-trap hectic.',
+  high: 'They want a packed, ambitious day — bold stops, memorable highlights, high signal per hour.',
+}
+
+const paceCopy = {
+  wander: 'They like to wander and detour — serendipity over efficiency; side streets and odd angles welcome.',
+  mix: 'They like a mix of classics and surprises — one or two anchor stops plus unexpected finds.',
+  highlights: 'They prefer an efficient highlights reel — iconic or high-payoff stops, less meandering.',
+}
+
+const buildGroqPrompt = (profile, places, cityName = null) => {
+  const interests = profile.interests || []
   const location = cityName ? `in ${cityName}` : 'nearby'
   const placesText = places
     .map((place) => `- id: ${place.id} | ${place.name} (${place.type})`)
     .join('\n')
 
-  return `You are a creative travel curator helping a visitor discover the best of ${cityName || 'their city'}.
+  const chainRule = profile.avoid_chains
+    ? 'Strongly prefer independent, local, or neighborhood-defining spots over global chains and mall defaults.'
+    : 'Chains are acceptable only if they are clearly the best match for the stated interests.'
 
-Visitor interests: ${interests.join(', ')}.
+  const noteBlock = profile.note?.trim()
+    ? `Visitor added context (honor this if relevant, ignore if empty noise): "${profile.note.trim()}"`
+    : 'No extra free-text note from the visitor.'
 
-Interest → place type guide (use this to match picks to interests):
-- Food → restaurants, cafes, food halls, markets, notable eateries
-- Coffee → cafes, coffee roasters, espresso bars
-- Art → galleries, murals, art centers, sculpture, street art
-- History → historic sites, monuments, museums, heritage buildings, memorials
+  return `You are a sharp local curator (not a generic travel blog). Help someone get the most meaningful 90 minutes near their pin in ${cityName || 'this city'}.
+
+=== Visitor profile ===
+Interests: ${interests.join(', ')}
+Day energy: ${energyCopy[profile.energy] || energyCopy.balanced}
+Exploration style: ${paceCopy[profile.pace] || paceCopy.mix}
+${chainRule}
+${noteBlock}
+
+=== Interest → place type guide ===
+- Food → restaurants, food halls, markets, notable eateries (not supermarkets)
+- Coffee → cafes, roasters, espresso bars
+- Art → galleries, murals, art centers, sculpture
+- History → monuments, museums, heritage buildings, memorials, historic sites
 - Parks → parks, gardens, plazas, nature reserves, waterfronts
-- Architecture → landmark buildings, bridges, notable structures, plazas
-- Nightlife → bars, music venues, clubs, theatres, comedy clubs
-- Hidden Gems → niche local spots, secret gardens, lesser-known attractions
-- Street Food → food trucks, markets, taquerias, noodle shops, street vendors
-- Adventure → trailheads, viewpoints, peaks, cliffs, waterfalls, beaches
-- Viewpoints → scenic overlooks, hilltops, rooftop terraces, panoramic spots
-- Hiking → trailheads, nature paths, peaks, open spaces
-- Music → live music venues, jazz bars, record stores, concert halls
-- Local Culture → neighborhoods, cultural centers, indie shops, local institutions
+- Architecture → landmark buildings, bridges, notable structures
+- Nightlife → bars, music venues, theatres, comedy clubs
+- Hidden Gems → niche local spots, lesser-known public spaces
+- Street Food → markets, taquerias, food trucks, street vendors
+- Adventure / Viewpoints / Hiking → viewpoints, peaks, cliffs, beaches, trailheads, waterfalls, scenic overlooks
 
-Rules — follow strictly:
-1. ONLY pick places a tourist would genuinely want to visit.
-2. NEVER pick: shoe stores, clothing shops, pharmacies, banks, supermarkets, gyms, or any everyday errand.
-3. Match every pick to at least one stated interest using the guide above.
-4. Prefer niche, locally loved, or unique spots over generic chains.
-5. If a place type like "viewpoint", "peak", "waterfall", or "beach" exists in the list, always prioritize it for Adventure/Viewpoints/Hiking interests.
+=== Curation rules ===
+1. ONLY pick places a curious visitor would genuinely want to go — not errands, not retail shopping, not medical/finance.
+2. Match each pick to at least one stated interest (name that interest in why_youll_love_it).
+3. DIVERSITY: across the 5 picks, span at least 3 different primary vibes (e.g. not five nearly-identical restaurants unless interests are ONLY food-related and the list truly forces it).
+4. If interests span food + outdoors + culture, reflect that spread in the picks.
+5. Writing voice: concrete, specific, human. NO filler clichés (avoid words/phrases like: "hidden gem", "nestled", "vibrant", "must-visit", "bucket list"). Say what you actually see, taste, hear, or do there.
 
 Places ${location}:
 ${placesText}
 
-Pick exactly 5 of the most visit-worthy places that match the interests. Return a JSON array where each object has:
-- id: exact id from the list
-- about: one sentence (max 20 words) describing what this place actually is
-- why_youll_love_it: one sentence (max 20 words) naming the specific interest it satisfies
+Return a JSON array of exactly 5 objects. Each object:
+- id: exact id from the list above
+- about: one or two short sentences (max 35 words total) — factual, what happens there
+- why_youll_love_it: one sentence (max 28 words) — ties explicitly to their interests AND energy/pace when relevant
 
 IMPORTANT: Return only a raw JSON array [ ... ]. No markdown, no code fences, no extra text.`
 }
@@ -207,13 +274,16 @@ const parseGroqArray = (rawText) => {
   }
 }
 
-const fallbackGroqSelection = (interests, places) =>
-  places.slice(0, 5).map((place) => ({
+const fallbackGroqSelection = (profile, places) => {
+  const interests = profile.interests || []
+  return places.slice(0, 5).map((place) => ({
     id: place.id,
-    why_youll_love_it: `${place.name} fits your ${interests[0]?.toLowerCase() || 'local'} interests and is close to your pin.`,
+    why_youll_love_it: `${place.name} lines up with your ${interests[0]?.toLowerCase() || 'exploration'} thread and is a short walk from your pin.`,
   }))
+}
 
-const mergeCuratedPicks = (rawPlaces, curatedPicks, interests) => {
+const mergeCuratedPicks = (rawPlaces, curatedPicks, profile) => {
+  const interests = profile.interests || []
   const byId = new Map(rawPlaces.map((place) => [place.id, place]))
   const used = new Set()
   const merged = []
@@ -229,7 +299,7 @@ const mergeCuratedPicks = (rawPlaces, curatedPicks, interests) => {
       why_youll_love_it:
         typeof pick?.why_youll_love_it === 'string' && pick.why_youll_love_it.trim()
           ? pick.why_youll_love_it.trim()
-          : `${place.name} matches your ${interests[0]?.toLowerCase() || 'local'} vibe and is near your pin.`,
+          : `${place.name} fits your ${interests[0]?.toLowerCase() || 'local'} picks and sits near your pin.`,
     })
     used.add(id)
     if (merged.length === 5) break
@@ -241,7 +311,7 @@ const mergeCuratedPicks = (rawPlaces, curatedPicks, interests) => {
       merged.push({
         ...place,
         about: null,
-        why_youll_love_it: `${place.name} is a nearby ${place.type || 'spot'} that fits your interests.`,
+        why_youll_love_it: `${place.name} is a nearby ${place.type || 'spot'} that matches how you said you like to explore.`,
       })
       used.add(place.id)
       if (merged.length === 5) break
@@ -268,24 +338,25 @@ const queryPexelsImage = async (term) => {
 
 const queryPexelsImageForPlace = async (placeName, placeType) => {
   if (!PEXELS_API_KEY) return FALLBACK_IMAGE
+  const typeStr = typeof placeType === 'string' ? placeType : String(placeType || 'local place')
   // Try exact place name first — gives most accurate photo
   const nameResult = await queryPexelsImage(placeName)
   if (nameResult !== FALLBACK_IMAGE) return nameResult
   // Fall back to type-based search
-  const typeResult = await queryPexelsImage(placeType)
+  const typeResult = await queryPexelsImage(typeStr)
   if (typeResult !== FALLBACK_IMAGE) return typeResult
   // Last resort: generic interior/exterior by broad category
-  const broad = placeType.includes('park') || placeType.includes('garden')
+  const broad = typeStr.includes('park') || typeStr.includes('garden')
     ? 'city park outdoor'
-    : placeType.includes('museum') || placeType.includes('gallery')
+    : typeStr.includes('museum') || typeStr.includes('gallery')
     ? 'art museum interior'
-    : placeType.includes('cafe') || placeType.includes('coffee')
+    : typeStr.includes('cafe') || typeStr.includes('coffee')
     ? 'cafe interior'
-    : placeType.includes('restaurant') || placeType.includes('food')
+    : typeStr.includes('restaurant') || typeStr.includes('food')
     ? 'restaurant dining'
-    : placeType.includes('bar') || placeType.includes('pub')
+    : typeStr.includes('bar') || typeStr.includes('pub')
     ? 'bar nightlife'
-    : placeType.includes('shop') || placeType.includes('store')
+    : typeStr.includes('shop') || typeStr.includes('store')
     ? 'retail shop street'
     : 'city street local'
   return queryPexelsImage(broad)
@@ -356,66 +427,59 @@ const reverseGeocode = async (lat, lng) => {
   }
 }
 
-const buildGroqGeoFallbackPrompt = (lat, lng, interests, cityName = null) => {
+const buildGroqGeoFallbackPrompt = (lat, lng, profile, cityName = null) => {
+  const interests = profile.interests || []
   const location = cityName ? cityName : `coordinates ${lat}, ${lng}`
-  return `You are a creative travel curator. A visitor is exploring ${location}. Their interests: ${interests.join(', ')}.
+  return `You are a creative travel curator. A visitor is exploring ${location}.
 
-Suggest 5 genuinely visit-worthy, tourist-friendly places in ${cityName || 'this area'} that match their interests. Think local gems, not chains or everyday services.
+Profile:
+- Interests: ${interests.join(', ')}
+- Day energy: ${energyCopy[profile.energy] || energyCopy.balanced}
+- Exploration: ${paceCopy[profile.pace] || paceCopy.mix}
+- ${profile.avoid_chains ? 'Prefer indie/local over chains.' : 'Chains OK if best fit.'}
+${profile.note?.trim() ? `- Note: "${profile.note.trim()}"` : ''}
 
-Interest → place type guide:
-- Food → beloved local restaurants, cafes, food markets
-- History → museums, monuments, historic sites, heritage buildings
-- Parks → parks, gardens, plazas, nature reserves
-- Architecture → landmark buildings, notable structures, bridges
-- Adventure → scenic overlooks, hilltops, trailheads, viewpoints, waterfalls, beaches
-- Viewpoints → panoramic spots, hilltops, scenic terraces
-- Hiking → trailheads, open spaces, nature paths, peaks
-- Art → galleries, murals, cultural centers
-- Nightlife → bars, live music venues, theatres
-- Coffee → specialty cafes, roasters
-- Hidden Gems → niche local spots, secret gardens, lesser-known spots
-- Street Food → taquerias, markets, street vendors, food halls
-- Music → jazz bars, concert venues, live music spots
-- Local Culture → cultural centers, neighborhoods, indie institutions
+Invent or name 5 plausible, visit-worthy spots in ${cityName || 'this area'} that match the profile. No pharmacies, banks, shoe stores, or errands.
 
-Return a JSON array of exactly 5 objects, each with:
-- name: the place name
-- type: place type (e.g. viewpoint, park, restaurant, museum)
-- about: one sentence (max 20 words) describing what this place is
-- why_youll_love_it: one sentence (max 20 words) tied to a specific interest
-- lat: a realistic coordinate near ${lat}
-- lon: a realistic coordinate near ${lng}
+Diversify across 5 picks (food, outdoors, culture, etc. as interests allow).
 
-Return only valid JSON array, no markdown.`
+Return a JSON array of exactly 5 objects:
+- name, type, about (max 35 words factual), why_youll_love_it (max 28 words, name an interest)
+- lat, lon near ${lat}, ${lng}
+
+No cliché filler ("hidden gem", "nestled", "vibrant"). Return only valid JSON array, no markdown.`
 }
 
-const buildDefaultGeoFallback = (lat, lng, interests) =>
-  [
-    { name: 'Local Cafe', type: 'cafe' },
-    { name: 'City Park', type: 'park' },
-    { name: 'Art Gallery', type: 'gallery' },
-    { name: 'Restaurant Row', type: 'restaurant' },
-    { name: 'Bookshop', type: 'books' },
+const buildDefaultGeoFallback = (lat, lng, profile) => {
+  const interests = profile.interests || []
+  return [
+    { name: 'Neighborhood Cafe', type: 'cafe' },
+    { name: 'Riverside Walk', type: 'park' },
+    { name: 'City Lookout', type: 'viewpoint' },
+    { name: 'Local Kitchen', type: 'restaurant' },
+    { name: 'Small Gallery', type: 'gallery' },
   ].map((place, index) => ({
     id: `fallback-${index + 1}`,
     name: place.name,
     type: place.type,
     lat: lat + FALLBACK_COORD_OFFSETS[index].lat,
     lon: lng + FALLBACK_COORD_OFFSETS[index].lon,
-    why_youll_love_it: `${place.name} fits your ${interests[0]?.toLowerCase() || 'local'} interests nearby.`,
+    why_youll_love_it: `${place.name} fits your ${interests[0]?.toLowerCase() || 'exploration'} thread near your pin.`,
   }))
+}
 
-const buildGroqFallbackPlaces = async (lat, lng, interests, cityName = null) => {
-  if (!groq) return buildDefaultGeoFallback(lat, lng, interests)
+const buildGroqFallbackPlaces = async (lat, lng, profile, cityName = null) => {
+  const interests = profile.interests || []
+  if (!groq) return buildDefaultGeoFallback(lat, lng, profile)
   try {
     const completion = await groq.chat.completions.create({
       model: GROQ_MODEL,
-      messages: [{ role: 'user', content: buildGroqGeoFallbackPrompt(lat, lng, interests, cityName) }],
-      temperature: 0.6,
+      messages: [{ role: 'user', content: buildGroqGeoFallbackPrompt(lat, lng, profile, cityName) }],
+      temperature: 0.55,
     })
     const content = completion.choices?.[0]?.message?.content || '[]'
     const parsed = parseGroqArray(content).slice(0, 5)
-    if (!parsed.length) return buildDefaultGeoFallback(lat, lng, interests)
+    if (!parsed.length) return buildDefaultGeoFallback(lat, lng, profile)
     return parsed.map((place, index) => ({
       id: `fallback-groq-${index + 1}`,
       name: String(place?.name || `Local Spot ${index + 1}`),
@@ -430,19 +494,27 @@ const buildGroqFallbackPlaces = async (lat, lng, interests, cityName = null) => 
     }))
   } catch (error) {
     console.error('Groq fallback generation error:', error.message)
-    return buildDefaultGeoFallback(lat, lng, interests)
+    return buildDefaultGeoFallback(lat, lng, profile)
   }
 }
 
 app.post('/api/onboard', (req, res) => {
   const sessionId = req.body?.session_id
-  const interests = Array.isArray(req.body?.interests) ? req.body.interests : []
-
-  if (!sessionId || !interests.length) {
-    return res.status(400).json({ success: false, error: 'session_id and interests are required' })
+  let profile = null
+  if (req.body?.profile && typeof req.body.profile === 'object') {
+    profile = parseUserProfile(JSON.stringify(req.body.profile))
+  } else if (Array.isArray(req.body?.interests)) {
+    profile = parseUserProfile(JSON.stringify({ interests: req.body.interests }))
   }
 
-  upsertUserStmt.run(sessionId, JSON.stringify(interests))
+  if (!sessionId || !profile?.interests?.length) {
+    return res.status(400).json({
+      success: false,
+      error: 'session_id and profile (or interests[]) with at least one interest are required',
+    })
+  }
+
+  upsertUserStmt.run(sessionId, JSON.stringify(profile))
   return res.json({ success: true })
 })
 
@@ -456,47 +528,54 @@ app.get('/api/discover', async (req, res) => {
   }
 
   const user = getUserStmt.get(sessionId)
-  const interests = user?.interests ? JSON.parse(user.interests) : null
+  const profile = user?.interests ? parseUserProfile(user.interests) : null
   console.log(`Session ID received: ${sessionId}`)
-  console.log(`Interests found: ${JSON.stringify(interests)}`)
-  if (!interests || !Array.isArray(interests) || !interests.length) {
-    console.log('WARNING: no interests found for this session')
+  console.log(`Profile: ${profile ? profileSummaryForLog(profile) : 'null'}`)
+  if (!profile?.interests?.length) {
+    console.log('WARNING: no profile / interests found for this session')
     return res.status(400).json({ error: 'Session not found. Please complete onboarding first.' })
   }
 
   const cityName = await reverseGeocode(lat, lng)
   if (cityName) console.log(`City resolved: ${cityName}`)
 
-  const overpassResult = await fetchOverpassPlaces(lat, lng)
   let curatedFive = []
   let dataMode = 'demo'
 
-  if (overpassResult.ok) {
-    const rawPlaces = overpassResult.places
-    console.log(`Overpass success — ${rawPlaces.length} places found near ${lat},${lng}`)
-    console.log(`Overpass candidates: ${rawPlaces.map((p) => `${p.name} (${p.type})`).join(', ')}`)
-    dataMode = 'live'
-    let curated = []
-    if (groq) {
-      try {
-        const completion = await groq.chat.completions.create({
-          model: GROQ_MODEL,
-          messages: [{ role: 'user', content: buildGroqPrompt(interests, rawPlaces, cityName) }],
-          temperature: 0.4,
-        })
-        const content = completion.choices?.[0]?.message?.content || '[]'
-        curated = parseGroqArray(content)
-      } catch (error) {
-        console.error('Groq error:', error.message)
-        curated = fallbackGroqSelection(interests, rawPlaces)
+  if (USE_LIVE_OVERPASS) {
+    const overpassResult = await fetchOverpassPlaces(lat, lng)
+    if (overpassResult.ok) {
+      const rawPlaces = overpassResult.places
+      console.log(`Overpass success — ${rawPlaces.length} places found near ${lat},${lng}`)
+      console.log(`Overpass candidates: ${rawPlaces.map((p) => `${p.name} (${p.type})`).join(', ')}`)
+      dataMode = 'live'
+      let curated = []
+      if (groq) {
+        try {
+          const completion = await groq.chat.completions.create({
+            model: GROQ_MODEL,
+            messages: [{ role: 'user', content: buildGroqPrompt(profile, rawPlaces, cityName) }],
+            temperature: 0.42,
+          })
+          const content = completion.choices?.[0]?.message?.content || '[]'
+          curated = parseGroqArray(content)
+        } catch (error) {
+          console.error('Groq error:', error.message)
+          curated = fallbackGroqSelection(profile, rawPlaces)
+        }
+      } else {
+        curated = fallbackGroqSelection(profile, rawPlaces)
       }
+      curatedFive = mergeCuratedPicks(rawPlaces, curated, profile)
     } else {
-      curated = fallbackGroqSelection(interests, rawPlaces)
+      console.log(`Overpass failed — using Groq-generated fallback for ${lat},${lng}`)
+      curatedFive = await buildGroqFallbackPlaces(lat, lng, profile, cityName)
     }
-    curatedFive = mergeCuratedPicks(rawPlaces, curated, interests)
   } else {
-    console.log(`Overpass failed — using Groq-generated fallback for ${lat},${lng}`)
-    curatedFive = await buildGroqFallbackPlaces(lat, lng, interests, cityName)
+    console.log(
+      `Curation: AI-only (Groq geo). Set TRIPSYNC_USE_LIVE_OVERPASS=1 for live OSM + merge. Pin: ${lat},${lng}`,
+    )
+    curatedFive = await buildGroqFallbackPlaces(lat, lng, profile, cityName)
   }
 
   const finalPlaces = await Promise.all(
@@ -509,7 +588,10 @@ app.get('/api/discover', async (req, res) => {
         name: pick.name,
         type: placeType,
         about: pick.about || null,
-        why_youll_love_it: pick.why_youll_love_it,
+        why_youll_love_it:
+          typeof pick.why_youll_love_it === 'string' && pick.why_youll_love_it.trim()
+            ? pick.why_youll_love_it.trim()
+            : `${pick.name || 'This spot'} is a short walk from your pin and fits your picks.`,
         lat: Number(pick.lat),
         lon: Number(pick.lon),
         distance_m: distanceMeters,

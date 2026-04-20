@@ -30,15 +30,15 @@ function IntroScreen() {
         </h1>
         <p style={{ color: 'var(--text-secondary)', fontSize: '18px', lineHeight: 1.65, maxWidth: '520px' }}>
           Drop a pin anywhere on the map. TripSync reads your interests and uses AI to surface
-          the five most personally relevant places near you — with photos and a reason why you'll love each one.
+          the five most personally relevant places near you — with photos and a reason why you will love each one.
         </p>
       </div>
 
       <div style={{ display: 'grid', gap: '14px' }}>
         {[
-          'Tell us what you love — food, art, parks, hidden gems, and more',
-          'Drop a pin anywhere to set your location',
-          'AI curates 5 nearby places matched to your taste',
+          'Two-minute setup: interests, then day energy & how you like to explore',
+          'Drop a pin anywhere — we resolve the city and pull real nearby spots when data allows',
+          'Flip any card for a straight answer: what it is, and why it fits you — not generic filler',
         ].map((text) => (
           <div key={text} className="intro-feature">
             <div className="intro-feature-dot" />

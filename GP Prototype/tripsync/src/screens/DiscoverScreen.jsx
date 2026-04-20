@@ -1,20 +1,38 @@
+/* eslint-disable react/prop-types */
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { clearSessionId, fetchSuggestions, getInterests, getSessionId, resetDemo } from '../lib/api'
+import { clearSessionId, fetchSuggestions, getInterests, getProfile, getSessionId, resetDemo } from '../lib/api'
+
+const moodEnergyLabel = (e) =>
+  ({ calm: 'Calm day', balanced: 'Balanced energy', high: 'Bold day' }[e] || 'Balanced energy')
+
+const moodPaceLabel = (p) =>
+  ({ wander: 'Wander-friendly', mix: 'Classics + surprises', highlights: 'Highlight reel' }[p] || 'Classics + surprises')
 
 const SF_CENTER = { lat: 37.7749, lng: -122.4194 }
 const FALLBACK_IMAGE = 'https://placehold.co/800x500/10101e/00e5a0?text=TripSync'
+
+const STOP_GRADIENTS = [
+  'linear-gradient(145deg,#ff6b35,#c73e1d)',
+  'linear-gradient(145deg,#7b68ee,#4b3cb8)',
+  'linear-gradient(145deg,#2ec4b6,#0d9488)',
+  'linear-gradient(145deg,#ff006e,#b8004f)',
+  'linear-gradient(145deg,#ffd60a,#f48c06)',
+]
+
+const escHtml = (s) =>
+  String(s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
 
 function LoadingCards() {
   return (
     <div className="cards-list">
       {Array.from({ length: 5 }).map((_, idx) => (
-        <article key={`skeleton-${idx}`} className="place-card skeleton-card">
+        <article key={`skeleton-${idx}`} className="skeleton-card">
           <div className="skeleton-image" />
-          <div className="skeleton-line skeleton-title" />
-          <div className="skeleton-line skeleton-pill" />
-          <div className="skeleton-line skeleton-copy" />
-          <div className="skeleton-line skeleton-copy short" />
         </article>
       ))}
     </div>
@@ -63,7 +81,7 @@ function PlaceCard({ place, isFlipped, onToggle }) {
             ? <p className="about-copy">{place.about}</p>
             : null
           }
-          <p className="why-copy">✦&nbsp;{place.why_youll_love_it}</p>
+          <p className="why-copy">✦&nbsp;{place.why_youll_love_it || 'A curated match for your pin and interests.'}</p>
           <span className="flip-hint">tap to flip back</span>
         </div>
 
@@ -77,6 +95,7 @@ function DiscoverScreen() {
   const mapRef = useRef(null)
   const mapContainerRef = useRef(null)
   const markerRef = useRef(null)
+  const suggestionLayerRef = useRef(null)
 
   const [sessionId, setSessionId] = useState('')
   const [interests, setInterestsState] = useState([])
@@ -88,6 +107,7 @@ function DiscoverScreen() {
   const [dataMode, setDataMode] = useState('demo')
   const [cityName, setCityName] = useState('')
   const [expandedId, setExpandedId] = useState(null)
+  const [profileRibbon, setProfileRibbon] = useState('')
 
   useEffect(() => {
     const storedSessionId = getSessionId()
@@ -96,7 +116,16 @@ function DiscoverScreen() {
       return
     }
     setSessionId(storedSessionId)
-    setInterestsState(getInterests())
+    const rawInterests = getInterests()
+    setInterestsState(Array.isArray(rawInterests) ? rawInterests : [])
+    const p = getProfile()
+    if (p) {
+      const parts = [moodEnergyLabel(p.energy), moodPaceLabel(p.pace)]
+      if (p.avoid_chains === false) parts.push('chains OK')
+      else parts.push('local-first')
+      if (p.note?.trim()) parts.push(`“${p.note.trim().slice(0, 80)}${p.note.trim().length > 80 ? '…' : ''}”`)
+      setProfileRibbon(parts.join(' · '))
+    }
     setSessionReady(true)
   }, [navigate])
 
@@ -129,6 +158,9 @@ function DiscoverScreen() {
 
     const marker = window.L.marker([SF_CENTER.lat, SF_CENTER.lng], { icon: pinIcon }).addTo(map)
 
+    const suggestionLayer = window.L.layerGroup().addTo(map)
+    suggestionLayerRef.current = suggestionLayer
+
     map.on('click', (event) => {
       const nextLocation = { lat: event.latlng.lat, lng: event.latlng.lng }
       marker.setLatLng(event.latlng)
@@ -137,7 +169,55 @@ function DiscoverScreen() {
 
     mapRef.current = map
     markerRef.current = marker
+
+    return () => {
+      suggestionLayerRef.current = null
+      markerRef.current = null
+      mapRef.current = null
+      map.remove()
+    }
   }, [sessionReady, sessionId])
+
+  useEffect(() => {
+    const map = mapRef.current
+    const layer = suggestionLayerRef.current
+    if (!map || !layer) return
+    layer.clearLayers()
+    if (isLoading || !places.length) return
+
+    places.forEach((place, index) => {
+      const lat = Number(place.lat)
+      const lon = Number(place.lon)
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) return
+      const n = index + 1
+      const grad = STOP_GRADIENTS[index % STOP_GRADIENTS.length]
+      const icon = window.L.divIcon({
+        className: 'suggest-marker-icon',
+        html: `<div class="suggest-marker-dot" style="background:${grad}">${n}</div>`,
+        iconSize: [34, 34],
+        iconAnchor: [17, 34],
+      })
+      const m = window.L.marker([lat, lon], { icon }).addTo(layer)
+      m.bindPopup(
+        `<div class="map-popup"><strong>${escHtml(place.name)}</strong><br/><span>${escHtml(place.type)}</span><br/><em>${Math.round(place.distance_m || 0)}m from pin</em></div>`,
+      )
+    })
+
+    const boundsPts = places
+      .map((p) => [Number(p.lat), Number(p.lon)])
+      .filter(([la, lo]) => Number.isFinite(la) && Number.isFinite(lo))
+    boundsPts.push([pinLocation.lat, pinLocation.lng])
+    if (boundsPts.length >= 2) {
+      try {
+        const b = window.L.latLngBounds(boundsPts)
+        map.fitBounds(b, { padding: [56, 56], maxZoom: 16, animate: true })
+      } catch (_e) {
+        /* ignore invalid bounds */
+      }
+    }
+    const pin = markerRef.current
+    if (pin && typeof pin.bringToFront === 'function') pin.bringToFront()
+  }, [places, isLoading, pinLocation])
 
   useEffect(() => {
     if (!sessionReady || !sessionId) return
@@ -208,13 +288,20 @@ function DiscoverScreen() {
         </div>
       </header>
 
+      {profileRibbon ? <p className="profile-ribbon">{profileRibbon}</p> : null}
+
       <section className="discover-layout">
         <div className="map-column">
           <div ref={mapContainerRef} className="map-shell" />
           <p className="map-hint">
+            <span className="map-legend">
+              <span className="legend-you" aria-hidden="true" /> You
+              <span className="legend-stop" aria-hidden="true" /> Suggested stops (tap for name)
+            </span>
+            <br />
             {cityName
-              ? <><span className="map-city">Pinned in <strong>{cityName}</strong> — </span>click the map to move your pin</>
-              : 'Click anywhere on the map to move your location pin'}
+              ? <><span className="map-city">Pinned in <strong>{cityName}</strong> — </span>click empty map to move your pin</>
+              : 'Click empty map to move your location pin'}
           </p>
         </div>
 
@@ -224,7 +311,7 @@ function DiscoverScreen() {
               {cityName ? `Near you in ${cityName}` : 'Nearby places'}
             </span>
             <div className={`data-mode-badge ${dataMode}`}>
-              {dataMode === 'live' ? 'Live data' : 'Demo mode'}
+              {dataMode === 'live' ? 'Live OSM' : 'AI curated'}
             </div>
           </div>
 
@@ -232,7 +319,12 @@ function DiscoverScreen() {
           {!isLoading && error ? (
             <div className="card" style={{ padding: '20px', color: 'var(--danger)' }}>{error}</div>
           ) : null}
-          {!isLoading && !error ? (
+          {!isLoading && !error && places.length === 0 ? (
+            <div className="card" style={{ padding: '20px', color: 'var(--text-secondary)' }}>
+              No suggestions for this pin. Try moving the map pin or check that the API server is running.
+            </div>
+          ) : null}
+          {!isLoading && !error && places.length > 0 ? (
             <div className="cards-list">
               {places.map((place) => (
                 <PlaceCard
