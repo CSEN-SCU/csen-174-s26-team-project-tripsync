@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>CSEN 174 — Week 3 Submission — Iker Mendiburu</title>
+<style>
+  @page {
+    size: Letter;
+    margin: 0.6in 0.7in;
+  }
+
+  :root {
+    --ink: #1b1a17;
+    --ink-soft: #4a463e;
+    --ink-mute: #7a7368;
+    --line: #d9d2c4;
+    --accent: #c0582c;
+    --accent-soft: #f2d7c5;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    color: var(--ink);
+    background: #fff;
+    font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+    font-size: 11pt;
+    line-height: 1.45;
+  }
+
+  h1, h2, h3 { margin: 0 0 .25em; line-height: 1.2; letter-spacing: -0.01em; }
+  h1 { font-size: 22pt; }
+  h2 { font-size: 14pt; color: var(--accent); }
+  h3 { font-size: 12pt; }
+  p  { margin: .35em 0; }
+  ul { margin: .25em 0; padding-left: 1.1em; }
+  code { font-family: "JetBrains Mono", Menlo, Consolas, monospace; font-size: 0.94em; background: #f5efe3; padding: 1px 5px; border-radius: 4px; }
+  a { color: var(--accent); text-decoration: none; }
+  hr { border: none; border-top: 1px solid var(--line); margin: 0.9em 0; }
+
+  .kicker {
+    font-size: 8pt; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--ink-mute); margin-bottom: 4px;
+  }
+  .badge {
+    display: inline-block; font-size: 8pt; letter-spacing: .14em;
+    text-transform: uppercase; padding: 2px 8px; border-radius: 6px;
+    background: var(--accent-soft); color: var(--accent); font-weight: 500;
+  }
+  .muted { color: var(--ink-mute); }
+
+  .cover {
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 28px 28px 22px;
+    background: linear-gradient(160deg, #fff7ee 0%, #ffe7d4 100%);
+    margin-bottom: 18px;
+  }
+  .cover .row {
+    display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+  }
+  .cover h1 { color: #1b1a17; }
+  .cover .lede { color: #5a3722; max-width: 60ch; }
+
+  .meta-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 24px;
+    margin: 14px 0 4px;
+  }
+  .meta-grid .label {
+    font-size: 8pt; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--ink-mute); margin-bottom: 2px;
+  }
+
+  .persona {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px 18px;
+    background: #fffaf2;
+    margin-bottom: 16px;
+  }
+  .persona h2 { margin-bottom: 4px; font-size: 13pt; }
+  .persona-name { font-weight: 600; color: var(--ink); }
+
+  .section {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin-bottom: 14px;
+  }
+
+  .panel {
+    page-break-inside: avoid;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 14px;
+    background: #fffdf9;
+  }
+  .panel .head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 12px; margin-bottom: 6px;
+  }
+  .panel .head h3 { margin: 0; }
+  .panel .head .num {
+    font-size: 8pt; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--ink-mute);
+  }
+  .panel img {
+    width: 100%; height: auto; display: block;
+    border-radius: 8px; border: 1px solid var(--line);
+    margin-bottom: 8px;
+  }
+  .panel .cap {
+    color: var(--ink-soft);
+    font-size: 10.5pt;
+  }
+
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .grid-2 .panel { margin-bottom: 0; }
+  .grid-2 .panel img { max-height: 3.0in; object-fit: contain; background: #fff; }
+
+  .page-break { page-break-before: always; }
+
+  footer {
+    margin-top: 12px;
+    padding-top: 8px;
+    border-top: 1px solid var(--line);
+    font-size: 8.5pt;
+    color: var(--ink-mute);
+    display: flex; justify-content: space-between;
+  }
+</style>
+</head>
+<body>
+
+  <!-- =================== Cover page =================== -->
+  <section class="cover">
+    <div class="row">
+      <span class="badge">CSEN 174 · Week 3</span>
+      <span class="muted">Repo Setup, Storyboard &amp; Divergent Prototype</span>
+    </div>
+    <h1 style="margin-top:8px;">Orbit Together</h1>
+    <p class="lede">
+      A divergent prototype of the team product <strong>Orbit</strong> —
+      reimagined as a <strong>shared, multi-person session</strong> for small
+      friend groups who can't agree on what to do next.
+    </p>
+
+    <div class="meta-grid">
+      <div>
+        <div class="label">Submitted by</div>
+        <div>Iker Mendiburu</div>
+      </div>
+      <div>
+        <div class="label">Team</div>
+        <div>TripSync (product: Orbit) · Kieran Greeley · GP Hora · Rosalie Wessels · Daniel Louie · Iker Mendiburu</div>
+      </div>
+      <div>
+        <div class="label">Repo</div>
+        <div><a href="https://github.com/CSEN-SCU/csen-174-s26-team-project-tripsync">github.com/CSEN-SCU/csen-174-s26-team-project-tripsync</a></div>
+      </div>
+      <div>
+        <div class="label">My prototype path</div>
+        <div><code>prototypes/iker/</code></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =================== Persona =================== -->
+  <section class="persona">
+    <div class="kicker">Persona</div>
+    <h2>Priya Sharma — and her trip with Marcus and Leah</h2>
+    <p>
+      <span class="persona-name">Priya, 24</span>, first job out of school,
+      first time abroad with friends — the friend with the color-coded Google
+      Doc and the backup weather PDF. She's traveling with
+      <strong>Marcus</strong> (her tired, hungry, decision-averse college
+      roommate) and <strong>Leah</strong> (a picky foodie allergic to anything
+      that looks like it has a TripAdvisor sticker on the door). It's day one
+      of their long weekend in Lisbon. Her plan is about to collide with
+      reality, and her group is the unit Orbit Together is built for.
+    </p>
+  </section>
+
+  <!-- =================== Prototype description =================== -->
+  <section class="section">
+    <div class="kicker">Prototype description (Part 3)</div>
+    <h2>Direction: Orbit as a shared, multi-person session</h2>
+    <p>
+      All four other teammates built Orbit as a <em>solo</em> traveler
+      experience (single-user map, single-user audio narration). My prototype,
+      <strong>Orbit Together</strong>, takes the same product vision but
+      reframes it as a <strong>group coordination tool</strong>: 2–5 friends
+      join one room with a 4-character code, each contributes interests and a
+      one-line vibe, and Orbit surfaces 4–5 nearby spots with a personal
+      <em>"why YOU"</em> line per member; per-person ❤️ / 🤔 / 👎 reactions
+      surface consensus naturally, and a Groq-generated narration addresses
+      the whole group by name when they pick a destination.
+    </p>
+    <p>
+      This explores a different <strong>flow of information</strong> (shared
+      session state, per-member tailoring, group consensus) that none of my
+      teammates touched — Kieran built a single-user map explorer, Daniel a
+      single-user phone-mockup audio guide, Rosalie a single-user listen-first
+      flow, and GP a single-user pin-and-cards discovery. The unit of use is
+      the change, not the surface details.
+    </p>
+    <p class="muted" style="font-size:10pt;">
+      <strong>Stack:</strong> FastAPI (port 8030) + SQLite + Groq
+      <code>llama-3.3-70b-versatile</code> backend; Vite + React 19 +
+      react-leaflet (port 5176) frontend; browser Web Speech API for narration.
+      Includes a one-tap "Be Priya / Marcus / Leah" demo persona shortcut so a
+      lone presenter at the gallery walk can show the multi-user experience
+      from a single laptop. Full setup &amp; demo script in
+      <code>prototypes/iker/README.md</code>.
+    </p>
+  </section>
+
+  <!-- =================== Storyboard intro =================== -->
+  <section class="section" style="background:#fff;">
+    <div class="kicker">Storyboard (Part 2)</div>
+    <h2>6-frame arc · low-fidelity sketch series</h2>
+    <p class="muted" style="font-size:10pt;">
+      Generated as a cohesive panel series with a warm monochrome palette and
+      one terracotta accent reserved for emotional highlights and the Orbit
+      app interface. A character reference (frame 1) was generated first, then
+      used as a consistency reference for frames 2–6 — the same technique the
+      assignment recommends for Nano Banana.
+    </p>
+  </section>
+
+  <!-- =================== Panels — one per page-row =================== -->
+  <div class="page-break"></div>
+
+  <article class="panel">
+    <div class="head">
+      <h3>Frame 1 — Meet the trio</h3>
+      <span class="num">01 / 06 · Main Character</span>
+    </div>
+    <img src="assets/storyboard/01-meet-the-trio.png" alt="Frame 1 — Meet the trio at Lisbon airport arrivals" />
+    <p class="cap">
+      Airport arrivals, Lisbon. Priya holds a printed itinerary in a plastic
+      sleeve, already in planner mode. Marcus drifts toward a vending machine.
+      Leah scrolls a Reddit thread about hidden pastéis de nata. They're
+      excited — but their three versions of the trip are already pulling apart.
+    </p>
+  </article>
+
+  <article class="panel">
+    <div class="head">
+      <h3>Frame 2 — The problem emerges</h3>
+      <span class="num">02 / 06 · Problem</span>
+    </div>
+    <img src="assets/storyboard/02-the-bicker.png" alt="Frame 2 — The trio bickering in Praça do Comércio" />
+    <p class="cap">
+      Praça do Comércio, 3 PM, day one. They've walked four hours. Three phones
+      come out — Priya on Maps, Marcus on Yelp, Leah on a travel blog. Three
+      apps, three answers, none of them know <em>them</em>. Fifteen minutes
+      pass with nothing decided. The sun is moving.
+    </p>
+  </article>
+
+  <div class="page-break"></div>
+
+  <article class="panel">
+    <div class="head">
+      <h3>Frame 3 — The "oh crap" moment</h3>
+      <span class="num">03 / 06 · Escalation</span>
+    </div>
+    <img src="assets/storyboard/03-oh-crap-moment.png" alt="Frame 3 — Slumped on a park bench while a happy couple walks by" />
+    <p class="cap">
+      Slumped on a bench in Jardim do Príncipe Real. A happy couple walks past
+      with a bag from a shop none of them saw on any list. Priya realizes the
+      good parts of traveling with friends are happening to strangers — and
+      it's only been four hours. The group chat is about to become a group
+      fight.
+    </p>
+  </article>
+
+  <article class="panel">
+    <div class="head">
+      <h3>Frame 4 — The solution appears</h3>
+      <span class="num">04 / 06 · Solution</span>
+    </div>
+    <img src="assets/storyboard/04-orbit-together-appears.png" alt="Frame 4 — Three heads leaning in over Priya's phone showing Orbit Together" />
+    <p class="cap">
+      Same bench, one phone. Priya opens Orbit Together: one map, one code,
+      everyone joins from their own phone with their own interests. Marcus
+      types in the four-character code while pretending not to be interested.
+      Three avatars pop onto a shared map. They lean in.
+    </p>
+  </article>
+
+  <div class="page-break"></div>
+
+  <article class="panel">
+    <div class="head">
+      <h3>Frame 5 — The "aha" moment</h3>
+      <span class="num">05 / 06 · Breakthrough</span>
+    </div>
+    <img src="assets/storyboard/05-aha-moment.png" alt="Frame 5 — Walking together toward Manteigaria" />
+    <p class="cap">
+      Five spots surface, each card written <em>to each of them by name</em>:
+      Leah's locals' pastel de nata, Marcus's quick-queue cervejaria, Priya's
+      1870s bookstore. Three hearts converge on Manteigaria. Orbit reads one
+      short line as they stand up — <em>"Counter seats beat the table, trust
+      me"</em> — and they laugh, for real, and start walking.
+    </p>
+  </article>
+
+  <article class="panel">
+    <div class="head">
+      <h3>Frame 6 — Life after</h3>
+      <span class="num">06 / 06 · Outcome</span>
+    </div>
+    <img src="assets/storyboard/06-life-after.png" alt="Frame 6 — Rooftop bar at dusk, phones face-down on the table" />
+    <p class="cap">
+      Rooftop bar, end of day one. All three phones face-down on the table.
+      Priya's doc is closed. Leah is taking a picture of <em>them</em>, not
+      the view. The Orbit session quietly saves the day's pins as a shared
+      trip recap. For the rest of the weekend, "what do we do now?" takes ten
+      seconds, not forty minutes.
+    </p>
+  </article>
+
+  <footer>
+    <span>Iker Mendiburu · CSEN 174 · Spring 2026</span>
+    <span><a href="https://github.com/CSEN-SCU/csen-174-s26-team-project-tripsync/tree/main/prototypes/iker">prototypes/iker/</a></span>
+  </footer>
+
+</body>
+</html>
