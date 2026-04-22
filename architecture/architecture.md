@@ -63,8 +63,6 @@ Directions open **Apple Maps** or **Google Maps** via deep link rather than in-a
 
 ## Key design decisions
 
-**No dedicated backend server (initially).** Logic runs in the Flutter app; the device talks to the Cloud DB and Claude directly. This speeds early delivery but implies **API keys in the client** until a proxy exists—acceptable for development, not for a wide public launch.
-
 **Curated POIs over live POI APIs.** Full control over quality and tone, at the cost of ongoing curation and a geo-indexed schema from day one.
 
 **Ping fatigue prevention.** The POI Ranker should enforce cooldowns, hourly caps, and explicit “quiet” windows so proactive audio stays trustworthy.
