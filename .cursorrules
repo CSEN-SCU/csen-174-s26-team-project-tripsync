@@ -14,6 +14,9 @@
 ## Product Vision
 See `product-vision.md` for the full product vision statement.
 
+## Architecture
+See `architecture/architecture.md` for the system architecture, consolidation plan, and C4 diagrams (Mermaid).
+
 ## Project Overview
 Orbit is an AI-powered travel companion that surfaces nearby points of interest and delivers real-time, audio-based tour guide experiences. Unlike static map apps, Orbit adapts to the user's location and interests to proactively surface relevant places and provide conversational, context-aware insights.
 
