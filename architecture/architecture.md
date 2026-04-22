@@ -1,8 +1,8 @@
-# TripSync / Orbit — Architecture Document
+# Orbit — Architecture Document
 
 ## What is Orbit?
 
-Orbit is the team’s working name for the **audio-first TripSync experience**: an AI-powered audio travel guide for people exploring cities on foot. Rather than requiring the user to open an app and search, Orbit runs quietly in the background and pings the user through their earbuds when something interesting is nearby — for example, “Hey, there’s a 400-year-old spice market four minutes away, want to check it out?” The user can respond by voice, ask follow-up questions, get directions, or dismiss the suggestion. The full interaction is intended to be hands-free through whatever audio device they’re wearing.
+Orbit is an **audio-first travel experience**: an AI-powered audio travel guide for people exploring cities on foot. Rather than requiring the user to open an app and search, Orbit runs quietly in the background and pings the user through their earbuds when something interesting is nearby — for example, “Hey, there’s a 400-year-old spice market four minutes away, want to check it out?” The user can respond by voice, ask follow-up questions, get directions, or dismiss the suggestion. The full interaction is intended to be hands-free through whatever audio device they’re wearing.
 
 The core experience is a **location-triggered voice conversation loop**:
 
@@ -15,15 +15,15 @@ The core experience is a **location-triggered voice conversation loop**:
 
 ---
 
-## Consolidation plan (TripSync team)
+## Consolidation plan (Orbit team)
 
 The repo is the **team’s home** for shared vision (`product-vision.md`) and **divergent prototypes** under `prototypes/<teammate>/`. This document is the **target consolidated architecture** for the hands-free, location-triggered guide—not a snapshot of every spike.
 
 | Phase | Goal |
 |--------|------|
 | **Now** | Prove UX and technical risks in isolated prototypes (e.g. web vs mobile, different LLM providers, local vs hosted data). |
-| **Consolidate** | One **Flutter** mobile app (iOS and Android) implementing the loop below: geo-aware POI fetch, ranking, voice I/O, Claude turns, and preference write-back via a **geo-capable Cloud DB**. |
-| **Pre-launch hardening** | Add a thin **backend or BFF** so Claude (and other) API keys, quotas, and prompt templates are not shipped in the client—see [Key design decisions](#key-design-decisions). |
+| **Consolidate** | One **Flutter** mobile app (iOS and Android) implementing the loop below: geo-aware POI fetch, ranking, voice I/O, LLM turns, and preference write-back via a **geo-capable Cloud DB**. |
+| **Pre-launch hardening** | Add a thin **backend or BFF** so LLM (and other) API keys, quotas, and prompt templates are not shipped in the client—see [Key design decisions](#key-design-decisions). |
 
 Alternate stacks in individual prototypes inform features and API shapes; they are **not** the long-term container set in the C4 diagrams below. During consolidation, those experiments should roll up into shared acceptance criteria and integration checks against this plan.
 
@@ -87,13 +87,13 @@ The **container** diagram answers: *What are the major runnable/deployable piece
 
 ### Context diagram
 
-**Narrative.** The **traveler** uses **Orbit** (single software system under design) for hands-free audio. Orbit reads and writes **Cloud DB** (POIs, accounts, preferences). It calls **Claude** for natural-language turns. For turn-by-turn directions it hands off to the **Maps app**. Audio playback and capture go through the **OS audio stack** (Bluetooth/wired routing, session category). No separate “backend” box appears in v1: the mobile app is the only TripSync-owned runtime between the user and external services.
+**Narrative.** The **traveler** uses **Orbit** (single software system under design) for hands-free audio. Orbit reads and writes **Cloud DB** (POIs, accounts, preferences). It calls **Claude** for natural-language turns. For turn-by-turn directions it hands off to the **Maps app**. Audio playback and capture go through the **OS audio stack** (Bluetooth/wired routing, session category). No separate “backend” box appears in v1: the mobile app is the only Orbit-owned runtime between the user and external services.
 
 ```mermaid
 C4Context
-    title System context — TripSync / Orbit
+    title System context — Orbit / Orbit
     Person(traveler, "Traveler", "Explores on foot; hears pings and replies by voice")
-    System(orbit, "Orbit", "AI audio travel guide (Flutter app — TripSync consolidated client)")
+    System(orbit, "Orbit", "AI audio travel guide (Flutter app — Orbit consolidated client)")
     SystemDb_Ext(db, "Cloud DB", "Curated geo POIs, accounts, preferences (e.g. PostGIS / Firebase geo)")
     System_Ext(claude, "Claude API", "Multi-turn conversation and tool-style prompts")
     System_Ext(maps, "Maps app", "Apple Maps / Google Maps — external navigation")
