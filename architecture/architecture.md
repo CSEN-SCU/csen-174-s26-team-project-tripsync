@@ -17,17 +17,11 @@ The core experience is a **location-triggered voice conversation loop**:
 
 ## Consolidation plan (Orbit team)
 
-The repo is the **team’s home** for shared vision (`product-vision.md`) and **divergent prototypes** under `prototypes/<teammate>/`. This document is the **target consolidated architecture** for the hands-free, location-triggered guide—not a snapshot of every spike.
+## Direction, Rationale, Starting Point
 
-| Phase | Goal |
-|--------|------|
-| **Now** | Prove UX and technical risks in isolated prototypes (e.g. web vs mobile, different LLM providers, local vs hosted data). |
-| **Consolidate** | One **Flutter** mobile app (iOS and Android) implementing the loop below: geo-aware POI fetch, ranking, voice I/O, LLM turns, and preference write-back via a **geo-capable Cloud DB**. |
-| **Pre-launch hardening** | Add a thin **backend or BFF** so LLM (and other) API keys, quotas, and prompt templates are not shipped in the client—see [Key design decisions](#key-design-decisions). |
+For our direction, we want to focus on an audio-based experience in a set geographical location. This resulted from distilling user feedback from our distinct prototypes. Our rationale is that people wanted an audio-based experience and to get suggestions and be able to follow up to learn more. 
 
-Alternate stacks in individual prototypes inform features and API shapes; they are **not** the long-term container set in the C4 diagrams below. During consolidation, those experiments should roll up into shared acceptance criteria and integration checks against this plan.
-
----
+Our starting point will be starting fresh and bringing in the key features from all of our prototypes.
 
 ## Tech stack
 
@@ -58,6 +52,15 @@ Accounts, onboarding preferences, and inferred preferences live in the Cloud DB.
 ### Navigation — URL deep-link
 
 Directions open **Apple Maps** or **Google Maps** via deep link rather than in-app navigation, keeping scope tight.
+
+## Who Owns What:
+Buckets:
+- setting up database, adding POIs (in bay area), geoFlutterFire (Kieran)
+- Onboarding and user interests, personalization (Daniel)
+- Speech to text and text to speech (Rosalie)
+- location tracking + accessing database (Iker)
+- AI integration (what the narration says, follow up answers) (GP)
+
 
 ---
 

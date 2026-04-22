@@ -1,6 +1,7 @@
 import os
 import math
 import asyncio
+from html import escape
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from fastapi import FastAPI, Depends, HTTPException
@@ -10,6 +11,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 import anthropic
 import edge_tts
+import httpx
 
 from database import get_db, engine, Base
 from models import POI, ConversationLog, UserPreference
@@ -236,17 +238,47 @@ def update_interests(req: InterestsUpdate, db: Session = Depends(get_db)):
 
 class TTSRequest(BaseModel):
     text: str
-    voice: str = "en-US-AriaNeural"
+    voice: str = "en-US-JennyNeural"
+
+
+async def synthesize_with_azure(req: TTSRequest) -> bytes:
+    speech_key = os.getenv("AZURE_TTS_KEY")
+    speech_region = os.getenv("AZURE_TTS_REGION")
+    if not speech_key or not speech_region:
+        raise RuntimeError("Azure TTS credentials are missing")
+
+    voice = req.voice or os.getenv("AZURE_TTS_VOICE", "en-US-JennyNeural")
+    escaped_text = escape(req.text)
+    ssml = (
+        "<speak version='1.0' xml:lang='en-US'>"
+        f"<voice name='{voice}'>{escaped_text}</voice>"
+        "</speak>"
+    )
+    url = f"https://{speech_region}.tts.speech.microsoft.com/cognitiveservices/v1"
+    headers = {
+        "Ocp-Apim-Subscription-Key": speech_key,
+        "Content-Type": "application/ssml+xml",
+        "X-Microsoft-OutputFormat": "audio-24khz-48kbitrate-mono-mp3",
+        "User-Agent": "Orbit-TripSync",
+    }
+
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        response = await client.post(url, headers=headers, content=ssml.encode("utf-8"))
+        response.raise_for_status()
+        return response.content
 
 
 @app.post("/api/tts")
 async def text_to_speech(req: TTSRequest):
     try:
-        communicate = edge_tts.Communicate(req.text, req.voice)
-        audio_data = b""
-        async for chunk in communicate.stream():
-            if chunk["type"] == "audio":
-                audio_data += chunk["data"]
+        if os.getenv("AZURE_TTS_KEY") and os.getenv("AZURE_TTS_REGION"):
+            audio_data = await synthesize_with_azure(req)
+        else:
+            communicate = edge_tts.Communicate(req.text, req.voice)
+            audio_data = b""
+            async for chunk in communicate.stream():
+                if chunk["type"] == "audio":
+                    audio_data += chunk["data"]
 
         if not audio_data:
             raise HTTPException(status_code=500, detail="TTS produced no audio")
@@ -255,6 +287,14 @@ async def text_to_speech(req: TTSRequest):
             content=audio_data,
             media_type="audio/mpeg",
             headers={"Cache-Control": "no-cache"},
+        )
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                f"Azure TTS error ({e.response.status_code}). "
+                "Verify AZURE_TTS_KEY and AZURE_TTS_REGION in backend/.env."
+            ),
         )
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"TTS error: {str(e)}")

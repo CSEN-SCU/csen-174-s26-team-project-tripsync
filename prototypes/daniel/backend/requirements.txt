@@ -4,4 +4,4 @@ sqlalchemy==2.0.40
 anthropic==0.96.0
 python-dotenv==1.1.0
 pydantic==2.11.3
-edge-tts==6.1.18
+edge-tts==7.2.8

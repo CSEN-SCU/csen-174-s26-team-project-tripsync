@@ -4,6 +4,45 @@ import MapPanel from "./components/MapPanel";
 import PhoneMockup from "./components/PhoneMockup";
 
 const API = "/api";
+const PREFERRED_TTS_VOICE = "en-US-JennyNeural";
+
+const FALLBACK_VOICE_PREFERENCES = [
+  "Samantha (Enhanced)",
+  "Zoe (Enhanced)",
+  "Karen (Enhanced)",
+  "Samantha",
+];
+
+const getPreferredBrowserVoice = () =>
+  new Promise((resolve) => {
+    const pickVoice = () => {
+      const voices = window.speechSynthesis.getVoices();
+      if (!voices.length) return null;
+      const found = voices.find((v) =>
+        FALLBACK_VOICE_PREFERENCES.some((name) => v.name.includes(name))
+      );
+      return found || voices[0];
+    };
+
+    const initial = pickVoice();
+    if (initial) {
+      resolve(initial);
+      return;
+    }
+
+    const onVoicesChanged = () => {
+      const voice = pickVoice();
+      if (!voice) return;
+      window.speechSynthesis.removeEventListener("voiceschanged", onVoicesChanged);
+      resolve(voice);
+    };
+
+    window.speechSynthesis.addEventListener("voiceschanged", onVoicesChanged);
+    setTimeout(() => {
+      window.speechSynthesis.removeEventListener("voiceschanged", onVoicesChanged);
+      resolve(null);
+    }, 750);
+  });
 
 export default function App() {
   const [started, setStarted] = useState(false);
@@ -44,7 +83,7 @@ export default function App() {
       const res = await fetch(`${API}/tts`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, voice: PREFERRED_TTS_VOICE }),
       });
 
       if (!res.ok) throw new Error("TTS request failed");
@@ -70,19 +109,12 @@ export default function App() {
     }
   };
 
-  const fallbackSpeak = (text) => {
+  const fallbackSpeak = async (text) => {
     window.speechSynthesis.cancel();
     const utter = new SpeechSynthesisUtterance(text);
     utter.rate = 0.95;
     utter.pitch = 1.05;
-    const voices = window.speechSynthesis.getVoices();
-    const preferred = voices.find(
-      (v) =>
-        v.name.includes("Samantha (Enhanced)") ||
-        v.name.includes("Zoe (Enhanced)") ||
-        v.name.includes("Karen (Enhanced)") ||
-        v.name.includes("Samantha")
-    );
+    const preferred = await getPreferredBrowserVoice();
     if (preferred) utter.voice = preferred;
     utter.onstart = () => setSpeaking(true);
     utter.onend = () => setSpeaking(false);
