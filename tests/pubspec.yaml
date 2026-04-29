@@ -1,0 +1,11 @@
+name: tripsync_gp_tests
+description: GP-owned Sprint 1 spec tests (Orbit LLM seam).
+publish_to: none
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+
+dev_dependencies:
+  llm_integration:
+    path: ../LLM-Integration
+  test: ^1.25.0
