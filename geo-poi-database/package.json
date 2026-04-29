@@ -1,0 +1,24 @@
+{
+  "name": "tripsync-geo-poi-database",
+  "version": "1.0.0",
+  "description": "[![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/NfqHRKdw)",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "generate:pois": "node generate_pois_from_osm.js",
+    "seed": "node seed_pois.js",
+    "seed:cloud": "node seed_pois.js --cloud",
+    "test": "node --test ../tests/geo_poi_database.test.js",
+    "test:geo-poi": "node --test ../tests/geo_poi_database.test.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "firebase-admin": "^13.8.0",
+    "firebase-tools": "^15.16.0",
+    "geofire-common": "^6.0.0"
+  }
+}

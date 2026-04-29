@@ -1,0 +1,3208 @@
+[
+  {
+    "id": "bay-area-comfort-women-column-of-strength",
+    "name": "\"Comfort Women\" Column of Strength",
+    "description": "\"Comfort Women\" Column of Strength is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.791814,
+    "longitude": -122.404487,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-111-minna",
+    "name": "111 Minna",
+    "description": "111 Minna is a gallery point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "gallery",
+    "latitude": 37.787416,
+    "longitude": -122.399331,
+    "tags": [
+      "art",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-3-way-russian-hill-view",
+    "name": "3-way Russian Hill view",
+    "description": "3-way Russian Hill view is a viewpoint point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "viewpoint",
+    "latitude": 37.798486,
+    "longitude": -122.417235,
+    "tags": [
+      "views",
+      "nature"
+    ]
+  },
+  {
+    "id": "bay-area-6-inch-m1903-gun",
+    "name": "6 inch M1903 gun",
+    "description": "6 inch M1903 gun is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.793619,
+    "longitude": -122.482873,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-abraham-lincoln",
+    "name": "Abraham Lincoln",
+    "description": "Abraham Lincoln is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.778901,
+    "longitude": -122.418538,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-admission-day-monument",
+    "name": "Admission Day Monument",
+    "description": "Admission Day Monument is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.78909,
+    "longitude": -122.401843,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "san-francisco-adobe-books-and-arts-cooperative",
+    "name": "Adobe Books and Arts Cooperative",
+    "description": "Adobe Books and Arts Cooperative is a gallery point of interest in San Francisco.",
+    "city": "San Francisco",
+    "category": "gallery",
+    "latitude": 37.752579,
+    "longitude": -122.414808,
+    "tags": [
+      "art",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-african-region-viewpoint",
+    "name": "African Region Viewpoint",
+    "description": "African Region Viewpoint is a viewpoint point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "viewpoint",
+    "latitude": 37.731749,
+    "longitude": -122.505529,
+    "tags": [
+      "views",
+      "nature"
+    ]
+  },
+  {
+    "id": "bay-area-african-savanna-viewpoint",
+    "name": "African Savanna Viewpoint",
+    "description": "African Savanna Viewpoint is a viewpoint point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "viewpoint",
+    "latitude": 37.732897,
+    "longitude": -122.504683,
+    "tags": [
+      "views",
+      "nature"
+    ]
+  },
+  {
+    "id": "bay-area-alamo-square-historic-district",
+    "name": "Alamo Square Historic District",
+    "description": "Alamo Square Historic District is a attraction point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "attraction",
+    "latitude": 37.777152,
+    "longitude": -122.434971,
+    "tags": [
+      "culture",
+      "history"
+    ]
+  },
+  {
+    "id": "bay-area-alcatraz",
+    "name": "Alcatraz",
+    "description": "Alcatraz is a viewpoint point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "viewpoint",
+    "latitude": 37.825263,
+    "longitude": -122.421361,
+    "tags": [
+      "views",
+      "nature"
+    ]
+  },
+  {
+    "id": "bay-area-alcatraz-and-hyde-st-pier-ships",
+    "name": "Alcatraz and Hyde St Pier ships",
+    "description": "Alcatraz and Hyde St Pier ships is a viewpoint point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "viewpoint",
+    "latitude": 37.8035,
+    "longitude": -122.42168,
+    "tags": [
+      "views",
+      "nature"
+    ]
+  },
+  {
+    "id": "san-francisco-alter-space",
+    "name": "Alter Space",
+    "description": "Alter Space is a gallery point of interest in San Francisco.",
+    "city": "San Francisco",
+    "category": "gallery",
+    "latitude": 37.777056,
+    "longitude": -122.410832,
+    "tags": [
+      "art",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-amal-s-deli",
+    "name": "Amal's Deli",
+    "description": "Amal's Deli is a market point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "market",
+    "latitude": 37.770288,
+    "longitude": -122.445703,
+    "tags": [
+      "food",
+      "shopping"
+    ]
+  },
+  {
+    "id": "bay-area-amigos",
+    "name": "Amigos",
+    "description": "Amigos is a market point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "market",
+    "latitude": 37.784763,
+    "longitude": -122.414607,
+    "tags": [
+      "food",
+      "shopping"
+    ]
+  },
+  {
+    "id": "bay-area-annie-st-plaza",
+    "name": "Annie St Plaza",
+    "description": "Annie St Plaza is a park point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "park",
+    "latitude": 37.786972,
+    "longitude": -122.401415,
+    "tags": [
+      "nature",
+      "walking",
+      "family"
+    ]
+  },
+  {
+    "id": "bay-area-ashurbanipal",
+    "name": "Ashurbanipal",
+    "description": "Ashurbanipal is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.779894,
+    "longitude": -122.415985,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-associated-students-farmer-s-market",
+    "name": "Associated Students Farmer's Market",
+    "description": "Associated Students Farmer's Market is a market point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "market",
+    "latitude": 37.72261,
+    "longitude": -122.480509,
+    "tags": [
+      "food",
+      "shopping"
+    ]
+  },
+  {
+    "id": "bay-area-autodesk-gallery",
+    "name": "Autodesk Gallery",
+    "description": "Autodesk Gallery is a gallery point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "gallery",
+    "latitude": 37.794149,
+    "longitude": -122.394787,
+    "tags": [
+      "art",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-bank-of-canton-former-chinese-telephone-exchange",
+    "name": "Bank of Canton (former Chinese Telephone Exchange)",
+    "description": "Bank of Canton (former Chinese Telephone Exchange) is a attraction point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "attraction",
+    "latitude": 37.795073,
+    "longitude": -122.406267,
+    "tags": [
+      "culture",
+      "history"
+    ]
+  },
+  {
+    "id": "bay-area-battery-blaney",
+    "name": "Battery Blaney",
+    "description": "Battery Blaney is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.802007,
+    "longitude": -122.46184,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-battery-chester",
+    "name": "Battery Chester",
+    "description": "Battery Chester is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.781901,
+    "longitude": -122.508438,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-battery-construction-129",
+    "name": "Battery Construction 129",
+    "description": "Battery Construction 129 is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.82804,
+    "longitude": -122.50099,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-battery-dynamite",
+    "name": "Battery Dynamite",
+    "description": "Battery Dynamite is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.801392,
+    "longitude": -122.476804,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-battery-howe-wagner",
+    "name": "Battery Howe-Wagner",
+    "description": "Battery Howe-Wagner is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.80249,
+    "longitude": -122.47218,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-battery-lancaster",
+    "name": "Battery Lancaster",
+    "description": "Battery Lancaster is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.808168,
+    "longitude": -122.475752,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-battery-livingston-a",
+    "name": "Battery Livingston A",
+    "description": "Battery Livingston A is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.783341,
+    "longitude": -122.501582,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-battery-livingston-b",
+    "name": "Battery Livingston B",
+    "description": "Battery Livingston B is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.782866,
+    "longitude": -122.501616,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-battery-mckinnon-stotsenberg",
+    "name": "Battery McKinnon-Stotsenberg",
+    "description": "Battery McKinnon-Stotsenberg is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.794945,
+    "longitude": -122.474588,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-battery-saffold",
+    "name": "Battery Saffold",
+    "description": "Battery Saffold is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.799798,
+    "longitude": -122.477458,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-battery-sherwood",
+    "name": "Battery Sherwood",
+    "description": "Battery Sherwood is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.802448,
+    "longitude": -122.464165,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-battery-springer-a",
+    "name": "Battery Springer A",
+    "description": "Battery Springer A is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.782392,
+    "longitude": -122.501659,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-battery-springer-b",
+    "name": "Battery Springer B",
+    "description": "Battery Springer B is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.78191,
+    "longitude": -122.50171,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-battery-west",
+    "name": "Battery West",
+    "description": "Battery West is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.802337,
+    "longitude": -122.477817,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-bay-bridge-and-treasure-island-viewpoint",
+    "name": "Bay Bridge and Treasure Island Viewpoint",
+    "description": "Bay Bridge and Treasure Island Viewpoint is a viewpoint point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "viewpoint",
+    "latitude": 37.794483,
+    "longitude": -122.389766,
+    "tags": [
+      "views",
+      "nature"
+    ]
+  },
+  {
+    "id": "bay-area-bay-bridge-trail-lookout",
+    "name": "Bay Bridge Trail Lookout",
+    "description": "Bay Bridge Trail Lookout is a viewpoint point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "viewpoint",
+    "latitude": 37.810793,
+    "longitude": -122.36333,
+    "tags": [
+      "views",
+      "nature"
+    ]
+  },
+  {
+    "id": "bay-area-bay-cruise-line",
+    "name": "Bay Cruise Line",
+    "description": "Bay Cruise Line is a attraction point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "attraction",
+    "latitude": 37.808893,
+    "longitude": -122.411367,
+    "tags": [
+      "culture",
+      "history"
+    ]
+  },
+  {
+    "id": "bay-area-bayview-police-station",
+    "name": "Bayview Police Station",
+    "description": "Bayview Police Station is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.73619,
+    "longitude": -122.391109,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-benedetti-diamond",
+    "name": "Benedetti Diamond",
+    "description": "Benedetti Diamond is a park point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "park",
+    "latitude": 37.776944,
+    "longitude": -122.448056,
+    "tags": [
+      "nature",
+      "walking",
+      "family"
+    ]
+  },
+  {
+    "id": "bay-area-benjamin-franklin",
+    "name": "Benjamin Franklin",
+    "description": "Benjamin Franklin is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.80082,
+    "longitude": -122.410013,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-bradford-street",
+    "name": "Bradford Street",
+    "description": "Bradford Street is a attraction point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "attraction",
+    "latitude": 37.737334,
+    "longitude": -122.409711,
+    "tags": [
+      "culture",
+      "history"
+    ]
+  },
+  {
+    "id": "bay-area-broderick-terry-duel",
+    "name": "Broderick-Terry Duel",
+    "description": "Broderick-Terry Duel is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.708221,
+    "longitude": -122.484219,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-broderick-terry-duel-site",
+    "name": "Broderick-Terry Duel Site",
+    "description": "Broderick-Terry Duel Site is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.707833,
+    "longitude": -122.482255,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-bush-street-cottage-row-historic-district",
+    "name": "Bush Street-Cottage Row Historic District",
+    "description": "Bush Street-Cottage Row Historic District is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.787023,
+    "longitude": -122.432552,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-cable-car-turntable-hyde-and-beach",
+    "name": "Cable Car Turntable (Hyde & Beach)",
+    "description": "Cable Car Turntable (Hyde & Beach) is a attraction point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "attraction",
+    "latitude": 37.807041,
+    "longitude": -122.421237,
+    "tags": [
+      "culture",
+      "history"
+    ]
+  },
+  {
+    "id": "bay-area-cable-car-turntable-powell-and-market",
+    "name": "Cable Car Turntable (Powell & Market)",
+    "description": "Cable Car Turntable (Powell & Market) is a attraction point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "attraction",
+    "latitude": 37.784711,
+    "longitude": -122.407699,
+    "tags": [
+      "culture",
+      "history"
+    ]
+  },
+  {
+    "id": "bay-area-cable-car-turntable-taylor-and-bay",
+    "name": "Cable Car Turntable (Taylor & Bay)",
+    "description": "Cable Car Turntable (Taylor & Bay) is a attraction point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "attraction",
+    "latitude": 37.805232,
+    "longitude": -122.415236,
+    "tags": [
+      "culture",
+      "history"
+    ]
+  },
+  {
+    "id": "bay-area-california-and-powell-streets",
+    "name": "California and Powell streets",
+    "description": "California and Powell streets is a attraction point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "attraction",
+    "latitude": 37.792051,
+    "longitude": -122.409185,
+    "tags": [
+      "culture",
+      "history"
+    ]
+  },
+  {
+    "id": "san-francisco-california-historical-society-museum-and-bookstore",
+    "name": "California Historical Society Museum & Bookstore",
+    "description": "California Historical Society Museum & Bookstore is a museum point of interest in San Francisco.",
+    "city": "San Francisco",
+    "category": "museum",
+    "latitude": 37.786873,
+    "longitude": -122.401522,
+    "tags": [
+      "museum",
+      "culture",
+      "art"
+    ]
+  },
+  {
+    "id": "san-francisco-california-society-of-pioneers-museum-and-library",
+    "name": "California Society of Pioneers Museum and Library",
+    "description": "California Society of Pioneers Museum and Library is a museum point of interest in San Francisco.",
+    "city": "San Francisco",
+    "category": "museum",
+    "latitude": 37.8,
+    "longitude": -122.459616,
+    "tags": [
+      "museum",
+      "culture",
+      "art"
+    ]
+  },
+  {
+    "id": "bay-area-california-volunteers-memorial",
+    "name": "California Volunteers Memorial",
+    "description": "California Volunteers Memorial is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.768871,
+    "longitude": -122.426806,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-carlos-iii",
+    "name": "Carlos III",
+    "description": "Carlos III is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.726648,
+    "longitude": -122.499355,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-cartoon-art-museum",
+    "name": "Cartoon Art Museum",
+    "description": "Cartoon Art Museum is a museum point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "museum",
+    "latitude": 37.806377,
+    "longitude": -122.421787,
+    "tags": [
+      "museum",
+      "culture",
+      "art"
+    ]
+  },
+  {
+    "id": "bay-area-chaplain-william-d-mckinnon",
+    "name": "Chaplain William D. McKinnon",
+    "description": "Chaplain William D. McKinnon is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.772239,
+    "longitude": -122.465138,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-china-beach",
+    "name": "China Beach",
+    "description": "China Beach is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.787181,
+    "longitude": -122.491026,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "san-francisco-chinese-historical-society-of-america",
+    "name": "Chinese Historical Society of America",
+    "description": "Chinese Historical Society of America is a museum point of interest in San Francisco.",
+    "city": "San Francisco",
+    "category": "museum",
+    "latitude": 37.793857,
+    "longitude": -122.40882,
+    "tags": [
+      "museum",
+      "culture",
+      "art"
+    ]
+  },
+  {
+    "id": "bay-area-chinese-american-world-war-memorial",
+    "name": "Chinese-American World War Memorial",
+    "description": "Chinese-American World War Memorial is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.791964,
+    "longitude": -122.405249,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-christmas-tree-point",
+    "name": "Christmas Tree Point",
+    "description": "Christmas Tree Point is a viewpoint point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "viewpoint",
+    "latitude": 37.75493,
+    "longitude": -122.446642,
+    "tags": [
+      "views",
+      "nature"
+    ]
+  },
+  {
+    "id": "bay-area-cityscape-lounge",
+    "name": "Cityscape Lounge",
+    "description": "Cityscape Lounge is a viewpoint point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "viewpoint",
+    "latitude": 37.7853,
+    "longitude": -122.410933,
+    "tags": [
+      "views",
+      "nature"
+    ]
+  },
+  {
+    "id": "bay-area-coit-tower-and-bay-bridge-view",
+    "name": "Coit Tower & Bay Bridge view",
+    "description": "Coit Tower & Bay Bridge view is a viewpoint point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "viewpoint",
+    "latitude": 37.799418,
+    "longitude": -122.417401,
+    "tags": [
+      "views",
+      "nature"
+    ]
+  },
+  {
+    "id": "bay-area-coit-tower-and-east-bay",
+    "name": "Coit Tower & East Bay",
+    "description": "Coit Tower & East Bay is a viewpoint point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "viewpoint",
+    "latitude": 37.800252,
+    "longitude": -122.418395,
+    "tags": [
+      "views",
+      "nature"
+    ]
+  },
+  {
+    "id": "bay-area-colombo-market-arch",
+    "name": "Colombo Market Arch",
+    "description": "Colombo Market Arch is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.797607,
+    "longitude": -122.399477,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-counterculture-museum",
+    "name": "Counterculture Museum",
+    "description": "Counterculture Museum is a museum point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "museum",
+    "latitude": 37.769937,
+    "longitude": -122.44677,
+    "tags": [
+      "museum",
+      "culture",
+      "art"
+    ]
+  },
+  {
+    "id": "bay-area-death-of-a-sailor-reinhardt-j-keppler",
+    "name": "Death of a Sailor: Reinhardt J. Keppler",
+    "description": "Death of a Sailor: Reinhardt J. Keppler is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.782925,
+    "longitude": -122.511505,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-down-to-the-seas-in-ships",
+    "name": "Down to the Seas in Ships",
+    "description": "Down to the Seas in Ships is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.804264,
+    "longitude": -122.401836,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "san-francisco-dragon-gate",
+    "name": "Dragon Gate",
+    "description": "Dragon Gate is a attraction point of interest in San Francisco.",
+    "city": "San Francisco",
+    "category": "attraction",
+    "latitude": 37.790688,
+    "longitude": -122.405594,
+    "tags": [
+      "culture",
+      "history"
+    ]
+  },
+  {
+    "id": "bay-area-eadweard-james-muybridge",
+    "name": "Eadweard James Muybridge",
+    "description": "Eadweard James Muybridge is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.799505,
+    "longitude": -122.449619,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-eagles-point-overlook",
+    "name": "Eagles Point Overlook",
+    "description": "Eagles Point Overlook is a viewpoint point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "viewpoint",
+    "latitude": 37.786735,
+    "longitude": -122.494833,
+    "tags": [
+      "views",
+      "nature"
+    ]
+  },
+  {
+    "id": "san-francisco-exploratorium",
+    "name": "Exploratorium",
+    "description": "Exploratorium is a museum point of interest in San Francisco.",
+    "city": "San Francisco",
+    "category": "museum",
+    "latitude": 37.800906,
+    "longitude": -122.398523,
+    "tags": [
+      "museum",
+      "culture",
+      "art"
+    ]
+  },
+  {
+    "id": "bay-area-fairy-circle",
+    "name": "Fairy Circle",
+    "description": "Fairy Circle is a park point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "park",
+    "latitude": 37.722987,
+    "longitude": -122.478176,
+    "tags": [
+      "nature",
+      "walking",
+      "family"
+    ]
+  },
+  {
+    "id": "san-francisco-far-out-gallery",
+    "name": "Far Out Gallery",
+    "description": "Far Out Gallery is a gallery point of interest in San Francisco.",
+    "city": "San Francisco",
+    "category": "gallery",
+    "latitude": 37.742185,
+    "longitude": -122.498393,
+    "tags": [
+      "art",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-fida-market",
+    "name": "Fida Market",
+    "description": "Fida Market is a market point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "market",
+    "latitude": 37.766055,
+    "longitude": -122.419627,
+    "tags": [
+      "food",
+      "shopping"
+    ]
+  },
+  {
+    "id": "bay-area-fire-fighter-s-memorial",
+    "name": "Fire Fighter's Memorial",
+    "description": "Fire Fighter's Memorial is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.800838,
+    "longitude": -122.410683,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-first-public-school-in-california",
+    "name": "First Public School in California",
+    "description": "First Public School in California is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.79454,
+    "longitude": -122.405472,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-fort-baker-mine-depot-bld-409",
+    "name": "Fort Baker Mine Depot (Bld 409)",
+    "description": "Fort Baker Mine Depot (Bld 409) is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.833241,
+    "longitude": -122.478323,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-fort-baker-mine-depot-bld-410",
+    "name": "Fort Baker Mine Depot (Bld 410)",
+    "description": "Fort Baker Mine Depot (Bld 410) is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.832626,
+    "longitude": -122.478274,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-fort-baker-mine-depot-bld-411",
+    "name": "Fort Baker Mine Depot (Bld 411)",
+    "description": "Fort Baker Mine Depot (Bld 411) is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.832266,
+    "longitude": -122.478016,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-fort-baker-mine-depot-bld-412",
+    "name": "Fort Baker Mine Depot (Bld 412)",
+    "description": "Fort Baker Mine Depot (Bld 412) is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.831968,
+    "longitude": -122.477927,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-fort-mason-farmer-s-market",
+    "name": "Fort Mason Farmer's Market",
+    "description": "Fort Mason Farmer's Market is a market point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "market",
+    "latitude": 37.806167,
+    "longitude": -122.431566,
+    "tags": [
+      "food",
+      "shopping"
+    ]
+  },
+  {
+    "id": "bay-area-fort-mason-historic-district",
+    "name": "Fort Mason Historic District",
+    "description": "Fort Mason Historic District is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.805484,
+    "longitude": -122.42886,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-fort-winfield-scott",
+    "name": "Fort Winfield Scott",
+    "description": "Fort Winfield Scott is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.801638,
+    "longitude": -122.47461,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-gallery-444",
+    "name": "Gallery 444",
+    "description": "Gallery 444 is a gallery point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "gallery",
+    "latitude": 37.788308,
+    "longitude": -122.409172,
+    "tags": [
+      "art",
+      "culture"
+    ]
+  },
+  {
+    "id": "san-francisco-gallery-paule-anglim",
+    "name": "Gallery Paule Anglim",
+    "description": "Gallery Paule Anglim is a gallery point of interest in San Francisco.",
+    "city": "San Francisco",
+    "category": "gallery",
+    "latitude": 37.788071,
+    "longitude": -122.403921,
+    "tags": [
+      "art",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-gambier-plaza",
+    "name": "Gambier Plaza",
+    "description": "Gambier Plaza is a attraction point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "attraction",
+    "latitude": 37.724321,
+    "longitude": -122.420803,
+    "tags": [
+      "culture",
+      "history"
+    ]
+  },
+  {
+    "id": "bay-area-garden-of-remembrance",
+    "name": "Garden of Remembrance",
+    "description": "Garden of Remembrance is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.722645,
+    "longitude": -122.479437,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-general-john-j-pershing",
+    "name": "General John J. Pershing",
+    "description": "General John J. Pershing is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.771684,
+    "longitude": -122.466043,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-george-sterling-memorial",
+    "name": "George Sterling Memorial",
+    "description": "George Sterling Memorial is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.801745,
+    "longitude": -122.421081,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "san-francisco-ghirardelli-chocolate-experience",
+    "name": "Ghirardelli Chocolate Experience",
+    "description": "Ghirardelli Chocolate Experience is a attraction point of interest in San Francisco.",
+    "city": "San Francisco",
+    "category": "attraction",
+    "latitude": 37.805914,
+    "longitude": -122.42333,
+    "tags": [
+      "culture",
+      "history"
+    ]
+  },
+  {
+    "id": "bay-area-giraffe-viewpoint",
+    "name": "Giraffe Viewpoint",
+    "description": "Giraffe Viewpoint is a viewpoint point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "viewpoint",
+    "latitude": 37.732033,
+    "longitude": -122.50452,
+    "tags": [
+      "views",
+      "nature"
+    ]
+  },
+  {
+    "id": "san-francisco-glbt-history-museum",
+    "name": "GLBT History Museum",
+    "description": "GLBT History Museum is a museum point of interest in San Francisco.",
+    "city": "San Francisco",
+    "category": "museum",
+    "latitude": 37.760766,
+    "longitude": -122.435607,
+    "tags": [
+      "museum",
+      "culture",
+      "art"
+    ]
+  },
+  {
+    "id": "bay-area-goethe-and-schiller",
+    "name": "Goethe & Schiller",
+    "description": "Goethe & Schiller is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.771259,
+    "longitude": -122.465905,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-gold-star-mothers-rock",
+    "name": "Gold Star Mothers Rock",
+    "description": "Gold Star Mothers Rock is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.772824,
+    "longitude": -122.468717,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "sausalito-golden-gate-bridge-lookout",
+    "name": "Golden Gate Bridge Lookout",
+    "description": "Golden Gate Bridge Lookout is a viewpoint point of interest in Sausalito.",
+    "city": "Sausalito",
+    "category": "viewpoint",
+    "latitude": 37.82872,
+    "longitude": -122.486003,
+    "tags": [
+      "views",
+      "nature"
+    ]
+  },
+  {
+    "id": "bay-area-golden-gate-bridge-vista-point",
+    "name": "Golden Gate Bridge Vista Point",
+    "description": "Golden Gate Bridge Vista Point is a viewpoint point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "viewpoint",
+    "latitude": 37.829673,
+    "longitude": -122.483247,
+    "tags": [
+      "views",
+      "nature"
+    ]
+  },
+  {
+    "id": "bay-area-golden-gate-fortune-cookie-factory",
+    "name": "Golden Gate Fortune Cookie Factory",
+    "description": "Golden Gate Fortune Cookie Factory is a attraction point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "attraction",
+    "latitude": 37.795699,
+    "longitude": -122.407349,
+    "tags": [
+      "culture",
+      "history"
+    ]
+  },
+  {
+    "id": "bay-area-golden-gate-overlook",
+    "name": "Golden Gate Overlook",
+    "description": "Golden Gate Overlook is a viewpoint point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "viewpoint",
+    "latitude": 37.804013,
+    "longitude": -122.4767,
+    "tags": [
+      "views",
+      "nature"
+    ]
+  },
+  {
+    "id": "bay-area-harding-park",
+    "name": "Harding Park",
+    "description": "Harding Park is a park point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "park",
+    "latitude": 37.722374,
+    "longitude": -122.49088,
+    "tags": [
+      "nature",
+      "walking",
+      "family"
+    ]
+  },
+  {
+    "id": "san-francisco-hashimoto-contemporary",
+    "name": "Hashimoto Contemporary",
+    "description": "Hashimoto Contemporary is a gallery point of interest in San Francisco.",
+    "city": "San Francisco",
+    "category": "gallery",
+    "latitude": 37.788679,
+    "longitude": -122.413807,
+    "tags": [
+      "art",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-hawk-hill",
+    "name": "Hawk Hill",
+    "description": "Hawk Hill is a viewpoint point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "viewpoint",
+    "latitude": 37.828552,
+    "longitude": -122.498775,
+    "tags": [
+      "views",
+      "nature"
+    ]
+  },
+  {
+    "id": "bay-area-heaven-art-gallery",
+    "name": "Heaven Art Gallery",
+    "description": "Heaven Art Gallery is a gallery point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "gallery",
+    "latitude": 37.791187,
+    "longitude": -122.405606,
+    "tags": [
+      "art",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-henry-w-halleck",
+    "name": "Henry W. Halleck",
+    "description": "Henry W. Halleck is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.770917,
+    "longitude": -122.458002,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-heron-s-head-park-bird-blinds",
+    "name": "Heron's Head Park Bird Blinds",
+    "description": "Heron's Head Park Bird Blinds is a viewpoint point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "viewpoint",
+    "latitude": 37.738099,
+    "longitude": -122.372922,
+    "tags": [
+      "views",
+      "nature"
+    ]
+  },
+  {
+    "id": "bay-area-hidden-bridge",
+    "name": "Hidden Bridge",
+    "description": "Hidden Bridge is a attraction point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "attraction",
+    "latitude": 37.72166,
+    "longitude": -122.415214,
+    "tags": [
+      "culture",
+      "history"
+    ]
+  },
+  {
+    "id": "bay-area-holocaust-memorial",
+    "name": "Holocaust Memorial",
+    "description": "Holocaust Memorial is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.78564,
+    "longitude": -122.499978,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-hudson-s-bay-company",
+    "name": "Hudson's Bay Company",
+    "description": "Hudson's Bay Company is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.794119,
+    "longitude": -122.403552,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-hunters-point",
+    "name": "Hunters Point",
+    "description": "Hunters Point is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.726463,
+    "longitude": -122.36564,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-immigrant-point-overlook",
+    "name": "Immigrant Point Overlook",
+    "description": "Immigrant Point Overlook is a viewpoint point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "viewpoint",
+    "latitude": 37.796168,
+    "longitude": -122.477875,
+    "tags": [
+      "views",
+      "nature"
+    ]
+  },
+  {
+    "id": "bay-area-in-honor-of-vietnam-veterans",
+    "name": "In Honor of Vietnam Veterans",
+    "description": "In Honor of Vietnam Veterans is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.782877,
+    "longitude": -122.503841,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-in-memory-of-admiral-d-j-callaghan-guadalcanal",
+    "name": "In memory of Admiral D.J. Callaghan (Guadalcanal)",
+    "description": "In memory of Admiral D.J. Callaghan (Guadalcanal) is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.782712,
+    "longitude": -122.511403,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-in-memory-of-officer-bryan-d-tuvera",
+    "name": "In Memory of Officer Bryan D. Tuvera",
+    "description": "In Memory of Officer Bryan D. Tuvera is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.743887,
+    "longitude": -122.480855,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-inclusions-gallery",
+    "name": "Inclusions Gallery",
+    "description": "Inclusions Gallery is a gallery point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "gallery",
+    "latitude": 37.739051,
+    "longitude": -122.415423,
+    "tags": [
+      "art",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-indian-head-rock",
+    "name": "Indian Head Rock",
+    "description": "Indian Head Rock is a viewpoint point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "viewpoint",
+    "latitude": 37.715577,
+    "longitude": -122.395734,
+    "tags": [
+      "views",
+      "nature"
+    ]
+  },
+  {
+    "id": "bay-area-inspiration-point",
+    "name": "Inspiration Point",
+    "description": "Inspiration Point is a viewpoint point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "viewpoint",
+    "latitude": 37.792223,
+    "longitude": -122.458262,
+    "tags": [
+      "views",
+      "nature"
+    ]
+  },
+  {
+    "id": "san-francisco-international-art-museum-of-america",
+    "name": "International Art Museum of America",
+    "description": "International Art Museum of America is a museum point of interest in San Francisco.",
+    "city": "San Francisco",
+    "category": "museum",
+    "latitude": 37.781457,
+    "longitude": -122.410738,
+    "tags": [
+      "museum",
+      "culture",
+      "art"
+    ]
+  },
+  {
+    "id": "bay-area-jackson-square-historic-district",
+    "name": "Jackson Square Historic District",
+    "description": "Jackson Square Historic District is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.796873,
+    "longitude": -122.403026,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "san-francisco-japantown-peace-gallery",
+    "name": "Japantown Peace Gallery",
+    "description": "Japantown Peace Gallery is a museum point of interest in San Francisco.",
+    "city": "San Francisco",
+    "category": "museum",
+    "latitude": 37.785738,
+    "longitude": -122.429451,
+    "tags": [
+      "museum",
+      "culture",
+      "art"
+    ]
+  },
+  {
+    "id": "bay-area-japantown-peace-plaza",
+    "name": "Japantown Peace Plaza",
+    "description": "Japantown Peace Plaza is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.785307,
+    "longitude": -122.429775,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "san-francisco-jessica-silverman",
+    "name": "Jessica Silverman",
+    "description": "Jessica Silverman is a gallery point of interest in San Francisco.",
+    "city": "San Francisco",
+    "category": "gallery",
+    "latitude": 37.792844,
+    "longitude": -122.40614,
+    "tags": [
+      "art",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-jimmy-hendrix-house",
+    "name": "Jimmy Hendrix house",
+    "description": "Jimmy Hendrix house is a attraction point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "attraction",
+    "latitude": 37.770058,
+    "longitude": -122.447466,
+    "tags": [
+      "culture",
+      "history"
+    ]
+  },
+  {
+    "id": "bay-area-john-mclaren",
+    "name": "John McLaren",
+    "description": "John McLaren is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.772,
+    "longitude": -122.464744,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "san-francisco-john-pence-gallery",
+    "name": "John Pence Gallery",
+    "description": "John Pence Gallery is a gallery point of interest in San Francisco.",
+    "city": "San Francisco",
+    "category": "gallery",
+    "latitude": 37.787747,
+    "longitude": -122.414159,
+    "tags": [
+      "art",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-joseph-strauss-legacy-circle",
+    "name": "Joseph Strauss Legacy Circle",
+    "description": "Joseph Strauss Legacy Circle is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.807972,
+    "longitude": -122.475405,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-juan-bautista-de-anza",
+    "name": "Juan Bautista De Anza",
+    "description": "Juan Bautista De Anza is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.728366,
+    "longitude": -122.493636,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-kanrin-maru-monument",
+    "name": "Kanrin Maru Monument",
+    "description": "Kanrin Maru Monument is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.785682,
+    "longitude": -122.5007,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-kevin-manning",
+    "name": "Kevin Manning",
+    "description": "Kevin Manning is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.804883,
+    "longitude": -122.403378,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-korean-war-memorial",
+    "name": "Korean War Memorial",
+    "description": "Korean War Memorial is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.801146,
+    "longitude": -122.460989,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-lake-merced-sports-center",
+    "name": "Lake Merced Sports Center",
+    "description": "Lake Merced Sports Center is a park point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "park",
+    "latitude": 37.725487,
+    "longitude": -122.499417,
+    "tags": [
+      "nature",
+      "walking",
+      "family"
+    ]
+  },
+  {
+    "id": "san-francisco-langton-labs",
+    "name": "Langton Labs",
+    "description": "Langton Labs is a gallery point of interest in San Francisco.",
+    "city": "San Francisco",
+    "category": "gallery",
+    "latitude": 37.777063,
+    "longitude": -122.409438,
+    "tags": [
+      "art",
+      "culture"
+    ]
+  },
+  {
+    "id": "san-francisco-lehr-s-german-specialties",
+    "name": "Lehr's German Specialties",
+    "description": "Lehr's German Specialties is a market point of interest in San Francisco.",
+    "city": "San Francisco",
+    "category": "market",
+    "latitude": 37.745517,
+    "longitude": -122.426721,
+    "tags": [
+      "food",
+      "shopping"
+    ]
+  },
+  {
+    "id": "bay-area-letterform-archive",
+    "name": "Letterform Archive",
+    "description": "Letterform Archive is a museum point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "museum",
+    "latitude": 37.759825,
+    "longitude": -122.388244,
+    "tags": [
+      "museum",
+      "culture",
+      "art"
+    ]
+  },
+  {
+    "id": "bay-area-liberty-street-historic-district",
+    "name": "Liberty Street Historic District",
+    "description": "Liberty Street Historic District is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.75743,
+    "longitude": -122.423304,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-little-puffer-steam-train-depot",
+    "name": "Little Puffer Steam Train Depot",
+    "description": "Little Puffer Steam Train Depot is a attraction point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "attraction",
+    "latitude": 37.733228,
+    "longitude": -122.500254,
+    "tags": [
+      "culture",
+      "history"
+    ]
+  },
+  {
+    "id": "bay-area-lombard-street",
+    "name": "Lombard Street",
+    "description": "Lombard Street is a attraction point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "attraction",
+    "latitude": 37.80212,
+    "longitude": -122.418716,
+    "tags": [
+      "culture",
+      "history"
+    ]
+  },
+  {
+    "id": "bay-area-lone-sailor-monument",
+    "name": "Lone Sailor Monument",
+    "description": "Lone Sailor Monument is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.83266,
+    "longitude": -122.47995,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-lotta-s-fountain",
+    "name": "Lotta's Fountain",
+    "description": "Lotta's Fountain is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.787936,
+    "longitude": -122.403304,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-lou-goldblatt",
+    "name": "Lou Goldblatt",
+    "description": "Lou Goldblatt is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.783815,
+    "longitude": -122.42873,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-louis-sutter-playground",
+    "name": "Louis Sutter Playground",
+    "description": "Louis Sutter Playground is a park point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "park",
+    "latitude": 37.722477,
+    "longitude": -122.413672,
+    "tags": [
+      "nature",
+      "walking",
+      "family"
+    ]
+  },
+  {
+    "id": "bay-area-lover-s-rock",
+    "name": "Lover's Rock",
+    "description": "Lover's Rock is a attraction point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "attraction",
+    "latitude": 37.713943,
+    "longitude": -122.425437,
+    "tags": [
+      "culture",
+      "history"
+    ]
+  },
+  {
+    "id": "bay-area-lyon-steps",
+    "name": "Lyon Steps",
+    "description": "Lyon Steps is a viewpoint point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "viewpoint",
+    "latitude": 37.792841,
+    "longitude": -122.446487,
+    "tags": [
+      "views",
+      "nature"
+    ]
+  },
+  {
+    "id": "bay-area-madonna",
+    "name": "Madonna",
+    "description": "Madonna is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.806089,
+    "longitude": -122.429346,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-magowan-s-infinite-mirror-maze",
+    "name": "Magowan's Infinite Mirror Maze",
+    "description": "Magowan's Infinite Mirror Maze is a attraction point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "attraction",
+    "latitude": 37.810114,
+    "longitude": -122.410326,
+    "tags": [
+      "culture",
+      "history"
+    ]
+  },
+  {
+    "id": "bay-area-martin-luther-king-jr-memorial",
+    "name": "Martin Luther King, Jr. Memorial",
+    "description": "Martin Luther King, Jr. Memorial is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.784531,
+    "longitude": -122.402253,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-mary-ellen-pleasant",
+    "name": "Mary Ellen Pleasant",
+    "description": "Mary Ellen Pleasant is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.787627,
+    "longitude": -122.426938,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-matter-of-trust-eco-home",
+    "name": "Matter of Trust Eco-Home",
+    "description": "Matter of Trust Eco-Home is a attraction point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "attraction",
+    "latitude": 37.767735,
+    "longitude": -122.450148,
+    "tags": [
+      "culture",
+      "history"
+    ]
+  },
+  {
+    "id": "bay-area-matthew-hall-mcallister",
+    "name": "Matthew Hall McAllister",
+    "description": "Matthew Hall McAllister is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.780017,
+    "longitude": -122.419389,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-maybaum-gallery",
+    "name": "Maybaum Gallery",
+    "description": "Maybaum Gallery is a gallery point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "gallery",
+    "latitude": 37.786477,
+    "longitude": -122.4062,
+    "tags": [
+      "art",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-mechanics-monument",
+    "name": "Mechanics Monument",
+    "description": "Mechanics Monument is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.791284,
+    "longitude": -122.399213,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-memorial-stone-richard-n-goldman",
+    "name": "Memorial stone: Richard N. Goldman",
+    "description": "Memorial stone: Richard N. Goldman is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.78316,
+    "longitude": -122.511207,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-men-of-vision",
+    "name": "Men of Vision",
+    "description": "Men of Vision is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.808183,
+    "longitude": -122.47529,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-miguel-de-cervantes",
+    "name": "Miguel de Cervantes",
+    "description": "Miguel de Cervantes is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.77224,
+    "longitude": -122.466749,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-milton-myer-recreation-center",
+    "name": "Milton Myer Recreation Center",
+    "description": "Milton Myer Recreation Center is a park point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "park",
+    "latitude": 37.729653,
+    "longitude": -122.376915,
+    "tags": [
+      "nature",
+      "walking",
+      "family"
+    ]
+  },
+  {
+    "id": "san-francisco-montague-gallery",
+    "name": "Montague Gallery",
+    "description": "Montague Gallery is a gallery point of interest in San Francisco.",
+    "city": "San Francisco",
+    "category": "gallery",
+    "latitude": 37.7892,
+    "longitude": -122.4079,
+    "tags": [
+      "art",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-mr-and-mrs-george-f-jewett-jr-exhibit-gallery",
+    "name": "Mr. and Mrs. George F. Jewett, Jr. Exhibit Gallery",
+    "description": "Mr. and Mrs. George F. Jewett, Jr. Exhibit Gallery is a gallery point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "gallery",
+    "latitude": 37.778926,
+    "longitude": -122.415593,
+    "tags": [
+      "art",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-mt-davidson-vista-point",
+    "name": "Mt. Davidson Vista Point",
+    "description": "Mt. Davidson Vista Point is a viewpoint point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "viewpoint",
+    "latitude": 37.738453,
+    "longitude": -122.453181,
+    "tags": [
+      "views",
+      "nature"
+    ]
+  },
+  {
+    "id": "san-francisco-mus-e-m-canique",
+    "name": "Musée Mécanique",
+    "description": "Musée Mécanique is a museum point of interest in San Francisco.",
+    "city": "San Francisco",
+    "category": "museum",
+    "latitude": 37.809246,
+    "longitude": -122.415794,
+    "tags": [
+      "museum",
+      "culture",
+      "art"
+    ]
+  },
+  {
+    "id": "san-francisco-museo-italo-americano",
+    "name": "Museo Italo Americano",
+    "description": "Museo Italo Americano is a museum point of interest in San Francisco.",
+    "city": "San Francisco",
+    "category": "museum",
+    "latitude": 37.806968,
+    "longitude": -122.431417,
+    "tags": [
+      "museum",
+      "culture",
+      "art"
+    ]
+  },
+  {
+    "id": "bay-area-museum-of-craft-and-design",
+    "name": "Museum of Craft and Design",
+    "description": "Museum of Craft and Design is a museum point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "museum",
+    "latitude": 37.756927,
+    "longitude": -122.387959,
+    "tags": [
+      "museum",
+      "culture",
+      "art"
+    ]
+  },
+  {
+    "id": "san-francisco-museum-of-russian-culture",
+    "name": "Museum of Russian Culture",
+    "description": "Museum of Russian Culture is a museum point of interest in San Francisco.",
+    "city": "San Francisco",
+    "category": "museum",
+    "latitude": 37.785207,
+    "longitude": -122.44136,
+    "tags": [
+      "museum",
+      "culture",
+      "art"
+    ]
+  },
+  {
+    "id": "san-francisco-museum-of-the-african-diaspora",
+    "name": "Museum of the African Diaspora",
+    "description": "Museum of the African Diaspora is a museum point of interest in San Francisco.",
+    "city": "San Francisco",
+    "category": "museum",
+    "latitude": 37.786469,
+    "longitude": -122.401473,
+    "tags": [
+      "museum",
+      "culture",
+      "art"
+    ]
+  },
+  {
+    "id": "bay-area-musical-stairs",
+    "name": "Musical Stairs",
+    "description": "Musical Stairs is a attraction point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "attraction",
+    "latitude": 37.810018,
+    "longitude": -122.410352,
+    "tags": [
+      "culture",
+      "history"
+    ]
+  },
+  {
+    "id": "bay-area-national-cemetery-overlook",
+    "name": "National Cemetery Overlook",
+    "description": "National Cemetery Overlook is a viewpoint point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "viewpoint",
+    "latitude": 37.797464,
+    "longitude": -122.465119,
+    "tags": [
+      "views",
+      "nature"
+    ]
+  },
+  {
+    "id": "bay-area-north-observation-deck",
+    "name": "North Observation Deck",
+    "description": "North Observation Deck is a viewpoint point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "viewpoint",
+    "latitude": 37.7788,
+    "longitude": -122.514069,
+    "tags": [
+      "views",
+      "nature"
+    ]
+  },
+  {
+    "id": "bay-area-northeast-waterfront-historic-district",
+    "name": "Northeast Waterfront Historic District",
+    "description": "Northeast Waterfront Historic District is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.800206,
+    "longitude": -122.401082,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-observation-deck",
+    "name": "Observation Deck",
+    "description": "Observation Deck is a viewpoint point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "viewpoint",
+    "latitude": 37.714174,
+    "longitude": -122.503258,
+    "tags": [
+      "views",
+      "nature"
+    ]
+  },
+  {
+    "id": "bay-area-ohlone-indian-memorial",
+    "name": "Ohlone Indian Memorial",
+    "description": "Ohlone Indian Memorial is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.784816,
+    "longitude": -122.402936,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-our-lady-of-lourdes-grotto",
+    "name": "Our Lady of Lourdes Grotto",
+    "description": "Our Lady of Lourdes Grotto is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.775621,
+    "longitude": -122.452232,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-pacific-overlook",
+    "name": "Pacific Overlook",
+    "description": "Pacific Overlook is a viewpoint point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "viewpoint",
+    "latitude": 37.800819,
+    "longitude": -122.477973,
+    "tags": [
+      "views",
+      "nature"
+    ]
+  },
+  {
+    "id": "san-francisco-painted-ladies",
+    "name": "Painted Ladies",
+    "description": "Painted Ladies is a attraction point of interest in San Francisco.",
+    "city": "San Francisco",
+    "category": "attraction",
+    "latitude": 37.776224,
+    "longitude": -122.432786,
+    "tags": [
+      "culture",
+      "history"
+    ]
+  },
+  {
+    "id": "bay-area-phillip-burton",
+    "name": "Phillip Burton",
+    "description": "Phillip Burton is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.805108,
+    "longitude": -122.429561,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-philo-t-farnsworth",
+    "name": "Philo T Farnsworth",
+    "description": "Philo T Farnsworth is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.799334,
+    "longitude": -122.448781,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-philosopher-s-hill-and-labyrinth",
+    "name": "Philosopher's Hill and Labyrinth",
+    "description": "Philosopher's Hill and Labyrinth is a attraction point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "attraction",
+    "latitude": 37.71995,
+    "longitude": -122.420395,
+    "tags": [
+      "culture",
+      "history"
+    ]
+  },
+  {
+    "id": "bay-area-pier-39-sea-lions",
+    "name": "Pier 39 Sea Lions",
+    "description": "Pier 39 Sea Lions is a attraction point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "attraction",
+    "latitude": 37.810636,
+    "longitude": -122.41158,
+    "tags": [
+      "culture",
+      "history"
+    ]
+  },
+  {
+    "id": "bay-area-pier-45",
+    "name": "Pier 45",
+    "description": "Pier 45 is a attraction point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "attraction",
+    "latitude": 37.810017,
+    "longitude": -122.417676,
+    "tags": [
+      "culture",
+      "history"
+    ]
+  },
+  {
+    "id": "bay-area-pier-70",
+    "name": "Pier 70",
+    "description": "Pier 70 is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.761454,
+    "longitude": -122.385459,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-pioneer-mother-monument",
+    "name": "Pioneer Mother Monument",
+    "description": "Pioneer Mother Monument is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.770896,
+    "longitude": -122.474304,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-playland-at-the-beach-1920s-1972",
+    "name": "Playland-At-The-Beach (1920s-1972)",
+    "description": "Playland-At-The-Beach (1920s-1972) is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.773213,
+    "longitude": -122.510179,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-point-bonita-viewpoint",
+    "name": "Point Bonita Viewpoint",
+    "description": "Point Bonita Viewpoint is a viewpoint point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "viewpoint",
+    "latitude": 37.828491,
+    "longitude": -122.525524,
+    "tags": [
+      "views",
+      "nature"
+    ]
+  },
+  {
+    "id": "bay-area-point-lobos",
+    "name": "Point Lobos",
+    "description": "Point Lobos is a viewpoint point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "viewpoint",
+    "latitude": 37.781052,
+    "longitude": -122.514408,
+    "tags": [
+      "views",
+      "nature"
+    ]
+  },
+  {
+    "id": "bay-area-prayerbook-cross",
+    "name": "Prayerbook Cross",
+    "description": "Prayerbook Cross is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.771739,
+    "longitude": -122.478348,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-president-garfield",
+    "name": "President Garfield",
+    "description": "President Garfield is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.771802,
+    "longitude": -122.45883,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-pride-barbie-doll-display-in-private-windows",
+    "name": "Pride Barbie Doll Display in private windows",
+    "description": "Pride Barbie Doll Display in private windows is a attraction point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "attraction",
+    "latitude": 37.759201,
+    "longitude": -122.434693,
+    "tags": [
+      "culture",
+      "history"
+    ]
+  },
+  {
+    "id": "bay-area-psychedelic-sf",
+    "name": "Psychedelic SF",
+    "description": "Psychedelic SF is a gallery point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "gallery",
+    "latitude": 37.770143,
+    "longitude": -122.44514,
+    "tags": [
+      "art",
+      "culture"
+    ]
+  },
+  {
+    "id": "san-francisco-queer-arts-featured",
+    "name": "Queer Arts Featured",
+    "description": "Queer Arts Featured is a gallery point of interest in San Francisco.",
+    "city": "San Francisco",
+    "category": "gallery",
+    "latitude": 37.759767,
+    "longitude": -122.434754,
+    "tags": [
+      "art",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-roald-amundsen",
+    "name": "Roald Amundsen",
+    "description": "Roald Amundsen is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.76994,
+    "longitude": -122.510458,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-robert-burns",
+    "name": "Robert Burns",
+    "description": "Robert Burns is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.77225,
+    "longitude": -122.465489,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-robert-emmet",
+    "name": "Robert Emmet",
+    "description": "Robert Emmet is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.770211,
+    "longitude": -122.467002,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-robert-w-carroll",
+    "name": "Robert W. Carroll",
+    "description": "Robert W. Carroll is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.770375,
+    "longitude": -122.509409,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-rolph-nicol-playground",
+    "name": "Rolph-Nicol Playground",
+    "description": "Rolph-Nicol Playground is a park point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "park",
+    "latitude": 37.730747,
+    "longitude": -122.48025,
+    "tags": [
+      "nature",
+      "walking",
+      "family"
+    ]
+  },
+  {
+    "id": "bay-area-roman-gladiator",
+    "name": "Roman Gladiator",
+    "description": "Roman Gladiator is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.770723,
+    "longitude": -122.468457,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-rose-pak-memorial-tree",
+    "name": "Rose Pak Memorial Tree",
+    "description": "Rose Pak Memorial Tree is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.791851,
+    "longitude": -122.40519,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-russian-hill-macondray-lane-historic-district",
+    "name": "Russian Hill-Macondray Lane Historic District",
+    "description": "Russian Hill-Macondray Lane Historic District is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.799095,
+    "longitude": -122.414971,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-russian-hill-paris-block-architectural-district",
+    "name": "Russian Hill-Paris Block Architectural District",
+    "description": "Russian Hill-Paris Block Architectural District is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.79854,
+    "longitude": -122.41636,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-russian-hill-vallejo-street-crest-historic-district",
+    "name": "Russian Hill-Vallejo Street Crest Historic District",
+    "description": "Russian Hill-Vallejo Street Crest Historic District is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.797688,
+    "longitude": -122.414914,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "san-francisco-salesforce-park-cable-car",
+    "name": "Salesforce Park Cable Car",
+    "description": "Salesforce Park Cable Car is a attraction point of interest in San Francisco.",
+    "city": "San Francisco",
+    "category": "attraction",
+    "latitude": 37.790201,
+    "longitude": -122.396632,
+    "tags": [
+      "culture",
+      "history"
+    ]
+  },
+  {
+    "id": "san-francisco-san-francisco-historical-society-museum",
+    "name": "San Francisco Historical Society Museum",
+    "description": "San Francisco Historical Society Museum is a museum point of interest in San Francisco.",
+    "city": "San Francisco",
+    "category": "museum",
+    "latitude": 37.794275,
+    "longitude": -122.403612,
+    "tags": [
+      "museum",
+      "culture",
+      "art"
+    ]
+  },
+  {
+    "id": "san-francisco-san-francisco-maritime-visitor-center",
+    "name": "San Francisco Maritime Visitor Center",
+    "description": "San Francisco Maritime Visitor Center is a museum point of interest in San Francisco.",
+    "city": "San Francisco",
+    "category": "museum",
+    "latitude": 37.807502,
+    "longitude": -122.420543,
+    "tags": [
+      "museum",
+      "culture",
+      "art"
+    ]
+  },
+  {
+    "id": "bay-area-san-francisco-railway-museum",
+    "name": "San Francisco Railway Museum",
+    "description": "San Francisco Railway Museum is a museum point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "museum",
+    "latitude": 37.793802,
+    "longitude": -122.393674,
+    "tags": [
+      "museum",
+      "culture",
+      "art"
+    ]
+  },
+  {
+    "id": "bay-area-san-francisco-sea-scout-base",
+    "name": "San Francisco Sea Scout Base",
+    "description": "San Francisco Sea Scout Base is a museum point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "museum",
+    "latitude": 37.807468,
+    "longitude": -122.42618,
+    "tags": [
+      "museum",
+      "culture",
+      "art"
+    ]
+  },
+  {
+    "id": "bay-area-schooner-parallel-blown-to-atoms-1887",
+    "name": "Schooner Parallel “Blown To Atoms” 1887",
+    "description": "Schooner Parallel “Blown To Atoms” 1887 is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.778553,
+    "longitude": -122.513963,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-secret-garden",
+    "name": "Secret Garden",
+    "description": "Secret Garden is a park point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "park",
+    "latitude": 37.723246,
+    "longitude": -122.478056,
+    "tags": [
+      "nature",
+      "walking",
+      "family"
+    ]
+  },
+  {
+    "id": "bay-area-shields-orizaba-rocky-outcrop",
+    "name": "Shields Orizaba Rocky Outcrop",
+    "description": "Shields Orizaba Rocky Outcrop is a viewpoint point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "viewpoint",
+    "latitude": 37.718088,
+    "longitude": -122.462577,
+    "tags": [
+      "views",
+      "nature"
+    ]
+  },
+  {
+    "id": "san-francisco-simple",
+    "name": "Simple",
+    "description": "Simple is a market point of interest in San Francisco.",
+    "city": "San Francisco",
+    "category": "market",
+    "latitude": 37.765538,
+    "longitude": -122.450054,
+    "tags": [
+      "food",
+      "shopping"
+    ]
+  },
+  {
+    "id": "san-francisco-sin-titulo",
+    "name": "Sin Titulo",
+    "description": "Sin Titulo is a gallery point of interest in San Francisco.",
+    "city": "San Francisco",
+    "category": "gallery",
+    "latitude": 37.789485,
+    "longitude": -122.407407,
+    "tags": [
+      "art",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-site-of-first-u-s-branch-mint",
+    "name": "Site of First U.S. Branch Mint",
+    "description": "Site of First U.S. Branch Mint is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.79421,
+    "longitude": -122.403573,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-skyline",
+    "name": "Skyline",
+    "description": "Skyline is a viewpoint point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "viewpoint",
+    "latitude": 37.798241,
+    "longitude": -122.413636,
+    "tags": [
+      "views",
+      "nature"
+    ]
+  },
+  {
+    "id": "bay-area-southern-exposure",
+    "name": "Southern Exposure",
+    "description": "Southern Exposure is a museum point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "museum",
+    "latitude": 37.759331,
+    "longitude": -122.411463,
+    "tags": [
+      "museum",
+      "culture",
+      "art"
+    ]
+  },
+  {
+    "id": "san-francisco-speciality-shops-art-gallery",
+    "name": "Speciality Shops Art Gallery",
+    "description": "Speciality Shops Art Gallery is a gallery point of interest in San Francisco.",
+    "city": "San Francisco",
+    "category": "gallery",
+    "latitude": 37.788509,
+    "longitude": -122.406072,
+    "tags": [
+      "art",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-stephen-negoesco-soccer-stadium",
+    "name": "Stephen Negoesco Soccer Stadium",
+    "description": "Stephen Negoesco Soccer Stadium is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.777059,
+    "longitude": -122.454167,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-stonestown-farmers-market",
+    "name": "Stonestown Farmers Market",
+    "description": "Stonestown Farmers Market is a market point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "market",
+    "latitude": 37.730201,
+    "longitude": -122.479024,
+    "tags": [
+      "food",
+      "shopping"
+    ]
+  },
+  {
+    "id": "san-francisco-strawberry-hill",
+    "name": "Strawberry Hill",
+    "description": "Strawberry Hill is a viewpoint point of interest in San Francisco.",
+    "city": "San Francisco",
+    "category": "viewpoint",
+    "latitude": 37.768668,
+    "longitude": -122.475512,
+    "tags": [
+      "views",
+      "nature"
+    ]
+  },
+  {
+    "id": "bay-area-sun-yat-sen-s-statue",
+    "name": "Sun Yat-sen's statue",
+    "description": "Sun Yat-sen's statue is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.792019,
+    "longitude": -122.40549,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-sweeny-observatory-ruins",
+    "name": "Sweeny Observatory Ruins",
+    "description": "Sweeny Observatory Ruins is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.768547,
+    "longitude": -122.475657,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-t-g-masaryk",
+    "name": "T.G. Masaryk",
+    "description": "T.G. Masaryk is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.771436,
+    "longitude": -122.471004,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "san-francisco-tenderloin-museum",
+    "name": "Tenderloin Museum",
+    "description": "Tenderloin Museum is a museum point of interest in San Francisco.",
+    "city": "San Francisco",
+    "category": "museum",
+    "latitude": 37.783915,
+    "longitude": -122.414121,
+    "tags": [
+      "museum",
+      "culture",
+      "art"
+    ]
+  },
+  {
+    "id": "san-francisco-the-beat-museum",
+    "name": "The Beat Museum",
+    "description": "The Beat Museum is a museum point of interest in San Francisco.",
+    "city": "San Francisco",
+    "category": "museum",
+    "latitude": 37.798064,
+    "longitude": -122.406184,
+    "tags": [
+      "museum",
+      "culture",
+      "art"
+    ]
+  },
+  {
+    "id": "bay-area-the-blue-house",
+    "name": "The Blue House",
+    "description": "The Blue House is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.761163,
+    "longitude": -122.429309,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-the-firehouse-at-fort-mason",
+    "name": "The Firehouse at Fort Mason",
+    "description": "The Firehouse at Fort Mason is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.807719,
+    "longitude": -122.429539,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-the-lilac-mural-project",
+    "name": "The Lilac Mural Project",
+    "description": "The Lilac Mural Project is a attraction point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "attraction",
+    "latitude": 37.751423,
+    "longitude": -122.417811,
+    "tags": [
+      "culture",
+      "history"
+    ]
+  },
+  {
+    "id": "bay-area-the-naval-battle-of-guadacanal",
+    "name": "The Naval Battle of Guadacanal",
+    "description": "The Naval Battle of Guadacanal is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.782753,
+    "longitude": -122.511398,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-the-parapet",
+    "name": "The Parapet",
+    "description": "The Parapet is a viewpoint point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "viewpoint",
+    "latitude": 37.777853,
+    "longitude": -122.512183,
+    "tags": [
+      "views",
+      "nature"
+    ]
+  },
+  {
+    "id": "bay-area-the-sf-market",
+    "name": "The SF Market",
+    "description": "The SF Market is a market point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "market",
+    "latitude": 37.741179,
+    "longitude": -122.394951,
+    "tags": [
+      "food",
+      "shopping"
+    ]
+  },
+  {
+    "id": "bay-area-the-smartest-sailing-vessel-out-of-san-francisco-brigantine-galilee",
+    "name": "The Smartest Sailing Vessel Out of San Francisco: Brigantine Galilee",
+    "description": "The Smartest Sailing Vessel Out of San Francisco: Brigantine Galilee is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.807251,
+    "longitude": -122.42986,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "san-francisco-the-view-lounge",
+    "name": "The View Lounge",
+    "description": "The View Lounge is a viewpoint point of interest in San Francisco.",
+    "city": "San Francisco",
+    "category": "viewpoint",
+    "latitude": 37.785414,
+    "longitude": -122.404326,
+    "tags": [
+      "views",
+      "nature"
+    ]
+  },
+  {
+    "id": "bay-area-the-village-market",
+    "name": "The Village Market",
+    "description": "The Village Market is a market point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "market",
+    "latitude": 37.723353,
+    "longitude": -122.482352,
+    "tags": [
+      "food",
+      "shopping"
+    ]
+  },
+  {
+    "id": "bay-area-thomas-starr-king",
+    "name": "Thomas Starr King",
+    "description": "Thomas Starr King is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.772287,
+    "longitude": -122.466282,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-tiki-bob",
+    "name": "Tiki Bob",
+    "description": "Tiki Bob is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.787796,
+    "longitude": -122.411565,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-top-of-the-mark",
+    "name": "Top of the Mark",
+    "description": "Top of the Mark is a viewpoint point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "viewpoint",
+    "latitude": 37.791624,
+    "longitude": -122.410408,
+    "tags": [
+      "views",
+      "nature"
+    ]
+  },
+  {
+    "id": "bay-area-treasure-island-naval-station",
+    "name": "Treasure Island Naval Station",
+    "description": "Treasure Island Naval Station is a attraction point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "attraction",
+    "latitude": 37.816293,
+    "longitude": -122.371733,
+    "tags": [
+      "culture",
+      "history"
+    ]
+  },
+  {
+    "id": "bay-area-trees-from-13-colonies",
+    "name": "Trees from 13 Colonies",
+    "description": "Trees from 13 Colonies is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.770959,
+    "longitude": -122.473909,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-truhlsen-marmor-museum-of-the-eye",
+    "name": "Truhlsen-Marmor Museum of the Eye",
+    "description": "Truhlsen-Marmor Museum of the Eye is a museum point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "museum",
+    "latitude": 37.806595,
+    "longitude": -122.420249,
+    "tags": [
+      "museum",
+      "culture",
+      "art"
+    ]
+  },
+  {
+    "id": "bay-area-tuong-phong",
+    "name": "Tuong Phong",
+    "description": "Tuong Phong is a market point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "market",
+    "latitude": 37.784494,
+    "longitude": -122.416631,
+    "tags": [
+      "food",
+      "shopping"
+    ]
+  },
+  {
+    "id": "bay-area-ulrich-field",
+    "name": "Ulrich Field",
+    "description": "Ulrich Field is a park point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "park",
+    "latitude": 37.776944,
+    "longitude": -122.447778,
+    "tags": [
+      "nature",
+      "walking",
+      "family"
+    ]
+  },
+  {
+    "id": "bay-area-unknown-soldiers",
+    "name": "Unknown Soldiers",
+    "description": "Unknown Soldiers is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.800072,
+    "longitude": -122.465026,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-uss-san-francisco-ca-38",
+    "name": "USS San Francisco CA-38",
+    "description": "USS San Francisco CA-38 is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.782881,
+    "longitude": -122.511447,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-uss-san-francisco-memorial",
+    "name": "USS San Francisco Memorial",
+    "description": "USS San Francisco Memorial is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.782821,
+    "longitude": -122.51146,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-verdi",
+    "name": "Verdi",
+    "description": "Verdi is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.769166,
+    "longitude": -122.468342,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-view-on-golden-gate-bridge-and-richardson-bay",
+    "name": "View on Golden Gate Bridge & Richardson Bay",
+    "description": "View on Golden Gate Bridge & Richardson Bay is a viewpoint point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "viewpoint",
+    "latitude": 37.80348,
+    "longitude": -122.420047,
+    "tags": [
+      "views",
+      "nature"
+    ]
+  },
+  {
+    "id": "bay-area-vigilante-bell",
+    "name": "Vigilante Bell",
+    "description": "Vigilante Bell is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.80004,
+    "longitude": -122.459492,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-watertower-view",
+    "name": "Watertower View",
+    "description": "Watertower View is a viewpoint point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "viewpoint",
+    "latitude": 37.723191,
+    "longitude": -122.424541,
+    "tags": [
+      "views",
+      "nature"
+    ]
+  },
+  {
+    "id": "bay-area-whale-tours",
+    "name": "Whale Tours",
+    "description": "Whale Tours is a attraction point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "attraction",
+    "latitude": 37.808762,
+    "longitude": -122.410056,
+    "tags": [
+      "culture",
+      "history"
+    ]
+  },
+  {
+    "id": "bay-area-whaling-out-of-san-francisco",
+    "name": "Whaling Out of San Francisco",
+    "description": "Whaling Out of San Francisco is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.781362,
+    "longitude": -122.388097,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-william-mckinley-memorial",
+    "name": "William McKinley Memorial",
+    "description": "William McKinley Memorial is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.773103,
+    "longitude": -122.441484,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "bay-area-world-war-ii-memorial",
+    "name": "World War II Memorial",
+    "description": "World War II Memorial is a historic point of interest in Bay Area.",
+    "city": "Bay Area",
+    "category": "historic",
+    "latitude": 37.798608,
+    "longitude": -122.477965,
+    "tags": [
+      "history",
+      "culture"
+    ]
+  },
+  {
+    "id": "san-francisco-wwii-pacific-war-memorial-hall",
+    "name": "WWII Pacific War Memorial Hall",
+    "description": "WWII Pacific War Memorial Hall is a museum point of interest in San Francisco.",
+    "city": "San Francisco",
+    "category": "museum",
+    "latitude": 37.793272,
+    "longitude": -122.406371,
+    "tags": [
+      "museum",
+      "culture",
+      "art"
+    ]
+  }
+]
