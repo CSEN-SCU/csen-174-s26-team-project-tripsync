@@ -1,0 +1,7 @@
+name: location_engine
+description: Orbit location tracking and nearby POI lookup engine.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"

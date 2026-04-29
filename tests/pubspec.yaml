@@ -8,4 +8,6 @@ environment:
 dev_dependencies:
   llm_integration:
     path: ../LLM-Integration
+  location_engine:
+    path: ../location-engine
   test: ^1.25.0
