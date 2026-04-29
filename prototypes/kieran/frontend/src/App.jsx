@@ -41,9 +41,9 @@ const DEFAULT_LNG = -121.939;
 const PASSIVE_KM = 0.35;
 const PASSIVE_RING_M = PASSIVE_KM * 1000;
 const NEARBY_RADIUS_KM = 2.4;
-const MIN_FETCH_INTERVAL_MS = 14_000;
+const MIN_FETCH_INTERVAL_MS = 4_000;
 // Refetch nearby when you’ve moved “meaningfully” relative to the search radius.
-const MIN_MOVE_KM = NEARBY_RADIUS_KM * 0.5;
+const MIN_MOVE_KM = 0.35;
 const PERIODIC_REFRESH_MS = 55_000;
 /** Keep POIs on the map across refetches; prune when farther than this from the user. */
 const NEARBY_CACHE_PRUNE_KM = 4.8;

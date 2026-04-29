@@ -11,8 +11,6 @@ from typing import Any
 
 import httpx
 
-from wikimedia import enrich_poi_descriptions
-
 OVERPASS_URL = "https://overpass-api.de/api/interpreter"
 NEARBY_CACHE_TTL_S = 45.0
 FAIL_CACHE_TTL_S = 12.0
@@ -71,46 +69,35 @@ def offset_lat_lng(lat: float, lng: float, bearing_deg: float, distance_km: floa
     return math.degrees(lat2), math.degrees(lng2)
 
 
-def bbox_for_search(
+def center_for_search(
     lat: float,
     lng: float,
-    radius_km: float,
     heading_deg: float | None,
     speed_mps: float | None,
-) -> tuple[float, float, float, float]:
-    """
-    south, west, north, east — bbox for Overpass.
-    Shifts center forward along heading when moving, so queries lean into the direction of travel.
-    """
+) -> tuple[float, float]:
+    """Search center (possibly nudged forward when moving)."""
     clat, clng = lat, lng
     if heading_deg is not None and speed_mps is not None and speed_mps > 0.5:
         ahead_km = min(2.2, speed_mps * 50.0 / 1000.0)
         clat, clng = offset_lat_lng(lat, lng, heading_deg, ahead_km)
-
-    dlat = radius_km / 111.0
-    cos_lat = max(0.25, math.cos(math.radians(clat)))
-    dlng = radius_km / (111.0 * cos_lat)
-    south = clat - dlat
-    north = clat + dlat
-    west = clng - dlng
-    east = clng + dlng
-    return south, west, north, east
+    return clat, clng
 
 
-def build_overpass_query(south: float, west: float, north: float, east: float) -> str:
-    b = f"{south},{west},{north},{east}"
-    return f"""[out:json][timeout:12];
+def build_overpass_query(center_lat: float, center_lng: float, radius_km: float) -> str:
+    r_m = max(300, int(radius_km * 1000))
+    around = f"(around:{r_m},{center_lat},{center_lng})"
+    return f"""[out:json][timeout:25];
 (
-  node["tourism"]({b});
-  way["tourism"]({b});
-  node["historic"]({b});
-  way["historic"]({b});
-  node["amenity"~"museum|gallery|theatre|library|arts_centre|place_of_worship"]({b});
-  way["amenity"~"museum|gallery|theatre|library|arts_centre|place_of_worship"]({b});
-  node["leisure"="park"]["name"]({b});
-  way["leisure"="park"]["name"]({b});
-  node["natural"~"peak|beach"]({b});
-  way["natural"~"peak|beach"]({b});
+  node["tourism"]{around};
+  way["tourism"]{around};
+  node["historic"]{around};
+  way["historic"]{around};
+  node["amenity"~"museum|gallery|theatre|library|arts_centre|place_of_worship"]{around};
+  way["amenity"~"museum|gallery|theatre|library|arts_centre|place_of_worship"]{around};
+  node["leisure"="park"]["name"]{around};
+  way["leisure"="park"]["name"]{around};
+  node["natural"~"peak|beach"]{around};
+  way["natural"~"peak|beach"]{around};
 );
 out center tags;
 """
@@ -287,10 +274,10 @@ def fetch_pois_near(
         if (now - cached[0]) <= ttl:
             return _clone_rows(cached[1])
 
-    south, west, north, east = bbox_for_search(lat, lng, radius_km, heading_deg, speed_mps)
-    q = build_overpass_query(south, west, north, east)
+    center_lat, center_lng = center_for_search(lat, lng, heading_deg, speed_mps)
+    q = build_overpass_query(center_lat, center_lng, radius_km)
     try:
-        with httpx.Client(timeout=10.0) as client:
+        with httpx.Client(timeout=18.0) as client:
             r = client.post(OVERPASS_URL, data={"data": q})
             r.raise_for_status()
             data = r.json()
@@ -338,9 +325,6 @@ def fetch_pois_near(
         speed_factor = min(1.2, max(0.0, (speed_mps or 0) / 3.0))
         rank = d_km * (1.0 - 0.38 * speed_factor * align)
 
-        wiki_ref = (tags.get("wikipedia") or tags.get("wikipedia:en") or "").strip() or None
-        qid_ref = (tags.get("wikidata") or "").strip() or None
-
         raw.append(
             {
                 "id": poi_id,
@@ -353,8 +337,6 @@ def fetch_pois_near(
                 "distance_km": round(d_km, 3),
                 "_rank": rank,
                 "osm_type": et,
-                "_wiki": wiki_ref,
-                "_qid": qid_ref,
             }
         )
 
@@ -363,11 +345,6 @@ def fetch_pois_near(
     for row in raw[:max_results]:
         row.pop("_rank", None)
         out.append(row)
-
-    try:
-        enrich_poi_descriptions(out, max_lookups=8)
-    except Exception:
-        pass
 
     _NEARBY_CACHE[key] = (now, _clone_rows(out))
     if len(_NEARBY_CACHE) > 220:
