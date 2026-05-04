@@ -10,4 +10,6 @@ dev_dependencies:
     path: ../LLM-Integration
   location_engine:
     path: ../location-engine
+  voice_interface:
+    path: ../voice-interface
   test: ^1.25.0
