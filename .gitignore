@@ -54,3 +54,5 @@ Thumbs.db
 .dart_tool/
 LLM-Integration/pubspec.lock
 tests/pubspec.lock
+
+prototypes/rosalie/Orbit_Demo.mov
