@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Dart
+        uses: dart-lang/setup-dart@v1
+
+      - name: Install Dart dependencies
+        run: dart pub get
+        working-directory: tests
+
+      - name: Run Dart test suite
+        run: dart test .
+        working-directory: tests
+        env:
+          ORBIT_LLM_API_KEY: ${{ secrets.ORBIT_LLM_API_KEY }}
+          ORBIT_LLM_MODEL: ${{ secrets.ORBIT_LLM_MODEL }}
+          ORBIT_LLM_BASE_URL: ${{ secrets.ORBIT_LLM_BASE_URL }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Node dependencies
+        run: npm install
+        working-directory: geo-poi-database
+
+      - name: Run Node integration test suite
+        run: npm test
+        working-directory: geo-poi-database
+        env:
+          GCLOUD_PROJECT: ${{ secrets.GCLOUD_PROJECT }}
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
