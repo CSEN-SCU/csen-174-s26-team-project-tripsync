@@ -1,4 +1,4 @@
-package edu.scu.tripsync.tripsync
+package edu.scu.orbit
 
 import io.flutter.embedding.android.FlutterActivity
 
