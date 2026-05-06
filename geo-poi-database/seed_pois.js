@@ -2,6 +2,7 @@ const fs = require("node:fs/promises");
 const path = require("node:path");
 const admin = require("firebase-admin");
 const geofire = require("geofire-common");
+const { getFirestore: getCloudFirestore } = require("./firebase_admin");
 
 function configureEnvironment({ useCloud = false } = {}) {
   if (useCloud) {
@@ -33,6 +34,10 @@ function configureEnvironment({ useCloud = false } = {}) {
 }
 
 function getFirestore() {
+  if (!process.env.FIRESTORE_EMULATOR_HOST) {
+    return getCloudFirestore();
+  }
+
   if (!admin.apps.length) {
     admin.initializeApp({
       projectId: process.env.GCLOUD_PROJECT,
