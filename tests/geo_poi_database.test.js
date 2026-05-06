@@ -8,20 +8,7 @@ const geoPoiRequire = createRequire(
 );
 const admin = geoPoiRequire("firebase-admin");
 const geofire = geoPoiRequire("geofire-common");
-
-delete process.env.FIRESTORE_EMULATOR_HOST;
-
-const app =
-  process.env.GCLOUD_PROJECT &&
-  process.env.GCLOUD_PROJECT !== "your-firebase-project-id" &&
-  process.env.GOOGLE_APPLICATION_CREDENTIALS &&
-  !process.env.GOOGLE_APPLICATION_CREDENTIALS.includes("C:\\path\\to")
-    ? admin.initializeApp({
-        projectId: process.env.GCLOUD_PROJECT,
-      })
-    : null;
-
-const db = app ? admin.firestore(app) : null;
+const { getFirestore } = geoPoiRequire("./firebase_admin.js");
 
 function distanceInMiles(origin, destination) {
   const earthRadiusMiles = 3958.8;
@@ -47,9 +34,7 @@ function distanceInMiles(origin, destination) {
 }
 
 async function queryPois({ location, radiusMiles, preferences }) {
-  if (!db) {
-    throw new Error("Firestore is not configured for this test run.");
-  }
+  const db = getFirestore();
 
   const center = [location.latitude, location.longitude];
   const radiusMeters = radiusMiles * 1609.344;
@@ -113,24 +98,23 @@ async function queryPois({ location, radiusMiles, preferences }) {
 
 test(
   "geo POI database returns expected POIs for a valid location query",
-  {
-    skip: "Deferred to Sprint 2: requires dedicated Firebase credentials and seeded cloud test data in CI.",
-  },
   async () => {
-  const jimmyHendrixHouseLocation = {
-    latitude: 37.770058,
-    longitude: -122.447466,
-  };
+    const jimmyHendrixHouseLocation = {
+      latitude: 37.770058,
+      longitude: -122.447466,
+    };
 
-  const results = await queryPois({
-    location: jimmyHendrixHouseLocation,
-    radiusMiles: 1.2,
-    preferences: ["culture"],
-  });
+    const results = await queryPois({
+      location: jimmyHendrixHouseLocation,
+      radiusMiles: 1.2,
+      preferences: ["culture"],
+    });
 
-  assert.ok(
-    results.some((poi) => poi.id === "bay-area-jimmy-hendrix-house"),
-    "Expected Bay Area Jimmy Hendrix House to be included in culture POI results",
-  );
+    assert.ok(
+      results.some((poi) => poi.id === "bay-area-jimmy-hendrix-house"),
+      "Expected Bay Area Jimmy Hendrix House to be included in culture POI results",
+    );
+
+    await Promise.all(admin.apps.map((app) => app.delete()));
   },
 );

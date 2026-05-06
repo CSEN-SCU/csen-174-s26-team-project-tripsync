@@ -42,4 +42,4 @@ jobs:
         working-directory: geo-poi-database
         env:
           GCLOUD_PROJECT: ${{ secrets.GCLOUD_PROJECT }}
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
