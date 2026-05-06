@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TripSync — audio-first travel guide</title>
+    <meta
+      name="description"
+      content="TripSync is an audio-first travel guide that pings you about places worth a stop. Built by the TripSync team at Santa Clara University."
+    />
+    <style>
+      :root {
+        --bg: #0f1226;
+        --panel: #161a36;
+        --text: #f4f4fa;
+        --muted: #a4a8c4;
+        --accent: #7c8cff;
+        --accent-strong: #5566ff;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+          Arial, sans-serif;
+        line-height: 1.5;
+      }
+      main {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 64px 24px 96px;
+      }
+      header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 48px;
+      }
+      .logo {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        background: linear-gradient(
+          135deg,
+          var(--accent) 0%,
+          var(--accent-strong) 100%
+        );
+        display: grid;
+        place-items: center;
+        font-weight: 700;
+        font-size: 18px;
+      }
+      h1 {
+        font-size: 44px;
+        line-height: 1.15;
+        margin: 0 0 16px;
+        letter-spacing: -0.02em;
+      }
+      .lede {
+        font-size: 20px;
+        color: var(--muted);
+        margin: 0 0 40px;
+      }
+      .cta {
+        display: inline-block;
+        padding: 14px 22px;
+        border-radius: 12px;
+        background: var(--accent-strong);
+        color: white;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 16px;
+        transition: transform 0.1s ease, background 0.15s ease;
+      }
+      .cta:hover {
+        background: var(--accent);
+        transform: translateY(-1px);
+      }
+      .cta.secondary {
+        background: transparent;
+        border: 1px solid var(--muted);
+        color: var(--text);
+        margin-left: 12px;
+      }
+      .panel {
+        background: var(--panel);
+        border-radius: 14px;
+        padding: 24px;
+        margin-top: 48px;
+      }
+      h2 {
+        font-size: 18px;
+        margin: 0 0 12px;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      ul {
+        margin: 0;
+        padding-left: 20px;
+      }
+      li {
+        margin-bottom: 6px;
+      }
+      footer {
+        margin-top: 64px;
+        font-size: 14px;
+        color: var(--muted);
+      }
+      a {
+        color: var(--accent);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div class="logo">T</div>
+        <strong>TripSync</strong>
+      </header>
+
+      <h1>An audio-first travel guide that pings you about places worth a stop.</h1>
+      <p class="lede">
+        TripSync runs in the background and gives you a quick, conversational
+        heads-up when something nearby fits what you're into — hands-free,
+        through whatever earbuds you're already wearing.
+      </p>
+
+      <a class="cta" href="#" id="testflight-link"
+        >Join the TestFlight beta</a
+      >
+      <a class="cta secondary" href="https://github.com/scu-csen-174-s26/csen-174-s26-team-project-tripsync"
+        >View on GitHub</a
+      >
+
+      <section class="panel">
+        <h2>How it works</h2>
+        <ul>
+          <li>Detects nearby curated points of interest as you walk</li>
+          <li>Voice-pings you only when something matches your taste profile</li>
+          <li>Conversational follow-ups powered by an LLM</li>
+          <li>Hands off to Apple Maps or Google Maps for directions</li>
+        </ul>
+      </section>
+
+      <section class="panel">
+        <h2>Team</h2>
+        <ul>
+          <li>Kieran Greeley</li>
+          <li>GP Hora</li>
+          <li>Rosalie Wessels</li>
+          <li>Daniel Louie</li>
+          <li>Iker Mendiburu</li>
+        </ul>
+      </section>
+
+      <footer>
+        CSEN 174 · Software Engineering in the Age of AI · Santa Clara
+        University · Spring 2026
+      </footer>
+    </main>
+  </body>
+</html>

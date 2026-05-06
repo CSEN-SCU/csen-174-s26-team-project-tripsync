@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(brew install *)",
+      "Bash(dart --version)",
+      "Bash(dart pub *)",
+      "Bash(dart test *)",
+      "Read(//Users/daniel/Documents/Documents/flutter/**)",
+      "Read(//Users/daniel/Documents/Documents/flutter/bin/**)"
+    ]
+  }
+}
