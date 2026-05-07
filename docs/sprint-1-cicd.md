@@ -23,7 +23,7 @@ All required secrets are stored in GitHub Secrets and injected at runtime. No cr
 
 Our current live deployment/distribution URL is provided through TestFlight:
 
-`[ADD_TESTFLIGHT_LIVE_URL_HERE]`
+https://testflight.apple.com/join/4t68t4bB
 
 ### Deployment evidence screenshot
 
