@@ -29,11 +29,11 @@ Our current live deployment/distribution URL is provided through TestFlight:
 
 Insert a screenshot showing a successful deployment/workflow run from GitHub Actions:
 
-`[ADD_DEPLOYMENT_SCREENSHOT_PATH_OR_EMBED_HERE]`
+![Working Landing Page](../misc-content/TripSyncLandingPage.png)
 
 Example markdown (replace with your actual image path):
 
-`![Successful CI/CD deployment run](../misc-content/REPLACE_WITH_SCREENSHOT_FILENAME.png)`
+![Successful CI/CD deployment run](../misc-content/CICD.png)
 
 ### Platform paragraph
 
