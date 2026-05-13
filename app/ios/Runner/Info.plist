@@ -70,5 +70,7 @@
 	<string>TripSync listens for your spoken reply after it reads a place suggestion.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>TripSync turns what you say into text so we can log your reaction to suggestions.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>TripSync uses your location to suggest interesting places near you. Your location is only read while the app is open.</string>
 </dict>
 </plist>

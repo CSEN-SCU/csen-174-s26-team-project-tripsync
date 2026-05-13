@@ -8,6 +8,7 @@ import 'package:flutter_tts/flutter_tts.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
 import 'groq_orpheus_tts.dart';
+import 'location_service.dart';
 import 'tripsync_groq_config.dart';
 
 /// Home: speaks a place recommendation (headphones / system route), then listens
@@ -24,6 +25,7 @@ class TripSyncHomeScreen extends StatefulWidget {
 class _TripSyncHomeScreenState extends State<TripSyncHomeScreen> {
   final FlutterTts _tts = FlutterTts();
   final SpeechToText _speech = SpeechToText();
+  final LocationService _locationService = const LocationService();
 
   /// Static copy for now; later this can come from location + LLM.
   static const String _placeRecommendation =
@@ -41,10 +43,37 @@ class _TripSyncHomeScreenState extends State<TripSyncHomeScreen> {
   String _ttsSourceLine =
       'TTS: checking… (Groq Orpheus uses up to 200 characters per request.)';
 
+  LocationReading? _locationReading;
+  bool _locationLoading = true;
+
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _bootstrapVoice());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _bootstrapVoice();
+      _ensureLocation();
+    });
+  }
+
+  Future<void> _ensureLocation() async {
+    if (kIsWeb) {
+      if (!mounted) return;
+      setState(() {
+        _locationLoading = false;
+        _locationReading = const LocationReading(
+          outcome: LocationOutcome.error,
+          errorMessage: 'Location is only available on iOS or Android.',
+        );
+      });
+      return;
+    }
+
+    final reading = await _locationService.ensureConsentAndRead();
+    if (!mounted) return;
+    setState(() {
+      _locationLoading = false;
+      _locationReading = reading;
+    });
   }
 
   @override
@@ -335,6 +364,15 @@ class _TripSyncHomeScreenState extends State<TripSyncHomeScreen> {
                       ),
                     ),
                     const SizedBox(height: 20),
+                    _LocationPanel(
+                      loading: _locationLoading,
+                      reading: _locationReading,
+                      onRetry: () {
+                        setState(() => _locationLoading = true);
+                        _ensureLocation();
+                      },
+                    ),
+                    const SizedBox(height: 16),
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(18),
@@ -422,5 +460,130 @@ class _TripSyncHomeScreenState extends State<TripSyncHomeScreen> {
         ),
       ),
     );
+  }
+}
+
+class _LocationPanel extends StatelessWidget {
+  const _LocationPanel({
+    required this.loading,
+    required this.reading,
+    required this.onRetry,
+  });
+
+  final bool loading;
+  final LocationReading? reading;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final (icon, headline, detail) = _renderContent();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: theme.colorScheme.primary),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  headline,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.9),
+                    height: 1.35,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (detail != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              detail,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: Colors.white.withValues(alpha: 0.65),
+                height: 1.35,
+              ),
+            ),
+          ],
+          if (_shouldShowRetry()) ...[
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh_rounded, size: 18),
+                label: const Text('Try again'),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  bool _shouldShowRetry() {
+    if (loading) return false;
+    final outcome = reading?.outcome;
+    return outcome == LocationOutcome.denied ||
+        outcome == LocationOutcome.servicesDisabled ||
+        outcome == LocationOutcome.error;
+  }
+
+  (IconData, String, String?) _renderContent() {
+    if (loading || reading == null) {
+      return (
+        Icons.my_location_rounded,
+        'Checking your location…',
+        'TripSync uses your location to suggest places nearby.',
+      );
+    }
+
+    final r = reading!;
+    switch (r.outcome) {
+      case LocationOutcome.granted:
+        final lat = r.latitude?.toStringAsFixed(5) ?? '?';
+        final lng = r.longitude?.toStringAsFixed(5) ?? '?';
+        final acc = r.accuracyMeters;
+        final accLine = acc != null ? ' · ±${acc.toStringAsFixed(0)} m' : '';
+        return (
+          Icons.location_on_rounded,
+          'Location found',
+          '$lat, $lng$accLine — nearby place pings coming next sprint.',
+        );
+      case LocationOutcome.denied:
+        return (
+          Icons.location_off_rounded,
+          'Location access denied',
+          'TripSync needs your location to find nearby places. Tap "Try again" to grant access.',
+        );
+      case LocationOutcome.deniedForever:
+        return (
+          Icons.location_disabled_rounded,
+          'Location permission turned off',
+          'Open Settings → TripSync → Location and switch to "While Using the App".',
+        );
+      case LocationOutcome.servicesDisabled:
+        return (
+          Icons.gps_off_rounded,
+          'Device location is off',
+          'Turn on Location Services in your phone\'s Settings, then tap "Try again".',
+        );
+      case LocationOutcome.error:
+        return (
+          Icons.error_outline_rounded,
+          'Could not read your location',
+          r.errorMessage ?? 'Something went wrong. Tap "Try again".',
+        );
+    }
   }
 }
