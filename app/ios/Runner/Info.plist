@@ -72,5 +72,16 @@
 	<string>TripSync turns what you say into text so we can log your reaction to suggestions.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>TripSync uses your location to suggest interesting places near you. Your location is only read while the app is open.</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.1051733606542-h6euaq1eppujjsur1dc7h1salvg62f53</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>
