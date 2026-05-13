@@ -36,6 +36,8 @@ const _kTaskQuestion = 'Answer clearly in 2–5 sentences as TripSync for a trav
 
 class _LlmIntegrationScreenState extends State<LlmIntegrationScreen> {
   late final LlmClient _client;
+  /// Shared cap: **3** LLM starts / rolling minute for description + Q&A combined.
+  final _sendThrottle = LlmChatRateLimiter();
   final _placeNotes = TextEditingController(text: _kSamplePlaceNotes);
   final _question = TextEditingController();
 
@@ -69,8 +71,14 @@ class _LlmIntegrationScreenState extends State<LlmIntegrationScreen> {
     bool clearAnswer = false,
   }) async {
     if (!_hasKey || _busy) return;
+    final blocked = _sendThrottle.rejectReason();
+    if (blocked != null) {
+      setState(() => _errorLine = blocked);
+      return;
+    }
+    _sendThrottle.recordSendStarted();
+    _busy = true;
     setState(() {
-      _busy = true;
       _errorLine = null;
       if (clearDescription) _descriptionResult = null;
       if (clearAnswer) _answerResult = null;
