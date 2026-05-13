@@ -39,6 +39,8 @@ dependencies:
   http: ^1.6.0
   audioplayers: ^6.6.0
   path_provider: ^2.1.5
+  llm_integration:
+    path: ../LLM-Integration
 
 dev_dependencies:
   flutter_test:

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'home_screen.dart';
+import 'trip_sync_main_shell.dart';
 
 void main() {
   runApp(const TripSyncApp());
@@ -55,7 +55,7 @@ class _TripSyncLandingScreenState extends State<TripSyncLandingScreen> {
     if (!context.mounted) return;
     Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(
-        builder: (context) => TripSyncHomeScreen(userName: enteredName),
+        builder: (context) => TripSyncMainShell(userName: enteredName),
       ),
     );
   }
