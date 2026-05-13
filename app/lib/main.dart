@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'home_screen.dart';
+
 void main() {
   runApp(const TripSyncApp());
 }
@@ -50,8 +52,11 @@ class _TripSyncLandingScreenState extends State<TripSyncLandingScreen> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Welcome aboard, $enteredName.')),
+    if (!context.mounted) return;
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute<void>(
+        builder: (context) => TripSyncHomeScreen(userName: enteredName),
+      ),
     );
   }
 

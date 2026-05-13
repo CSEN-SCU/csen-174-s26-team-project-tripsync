@@ -66,5 +66,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>TripSync listens for your spoken reply after it reads a place suggestion.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>TripSync turns what you say into text so we can log your reaction to suggestions.</string>
 </dict>
 </plist>
