@@ -1128,10 +1128,18 @@ class _LocationPanel extends StatelessWidget {
     final r = reading!;
     switch (r.outcome) {
       case LocationOutcome.granted:
+        final lat = r.latitude;
+        final lng = r.longitude;
+        final accLine = r.accuracyMeters != null
+            ? ' (${r.accuracyMeters!.round()} m accuracy)'
+            : '';
+        final coordsDetail = lat != null && lng != null
+            ? '${lat.toStringAsFixed(5)}, ${lng.toStringAsFixed(5)}$accLine'
+            : 'Using your position to find nearby spots.';
         return (
           Icons.location_on_rounded,
           'Location found',
-          '$lat, $lng$accLine',
+          coordsDetail,
         );
       case LocationOutcome.denied:
         return (

@@ -5,6 +5,16 @@
 
 set -euo pipefail
 
+# Load app/.env when present (local dev).
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+ENV_FILE="$ROOT/.env"
+if [ -f "$ENV_FILE" ]; then
+  set -a
+  # shellcheck disable=SC1090
+  . "$ENV_FILE"
+  set +a
+fi
+
 require() {
   if [ -z "${!1:-}" ]; then
     echo "Missing required env var: $1" >&2
@@ -25,7 +35,6 @@ for v in \
   require "$v"
 done
 
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 ANDROID_JSON="$ROOT/android/app/google-services.json"
 IOS_PLIST="$ROOT/ios/Runner/GoogleService-Info.plist"
 IOS_REVERSED="com.googleusercontent.apps.${FIREBASE_IOS_CLIENT_ID%%.apps.googleusercontent.com}"
