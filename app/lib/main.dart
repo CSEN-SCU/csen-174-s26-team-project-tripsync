@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'auth/auth_service.dart';
 import 'firebase_options.dart';
-import 'home_screen.dart';
+import 'trip_sync_main_shell.dart';
 import 'onboarding/firestore_preferences_service.dart';
 import 'onboarding/preferences_onboarding_screen.dart';
 
@@ -75,7 +75,7 @@ class _AuthGateState extends State<AuthGate> {
 
               final preferences = preferencesSnapshot.data;
               if (preferences != null && preferences.interests.isNotEmpty) {
-                return TripSyncHomeScreen(userName: userName);
+                return TripSyncMainShell(userName: userName);
               }
 
               return PreferencesOnboardingScreen(
