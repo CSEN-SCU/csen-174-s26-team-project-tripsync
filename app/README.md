@@ -4,15 +4,13 @@ A new Flutter project.
 
 ## Firebase setup
 
-Firebase client config is **not** committed (see repo `.gitignore`). Each developer:
+API keys are **not** in git. They live in **GitHub repository secrets** (for CI) and in each developer’s gitignored `app/.env` (same variable names as secrets — get values from a teammate or Firebase Console).
 
-1. In [Firebase Console](https://console.firebase.google.com/), open the TripSync project and download platform config files, **or** from `app/` run `flutterfire configure`.
-2. Place files locally (gitignored):
-   - `lib/firebase_options.dart` — copy from `lib/firebase_options.dart.example` and fill in, or use FlutterFire output.
-   - `android/app/google-services.json` — from `google-services.json.example` template or Console.
-   - `ios/Runner/GoogleService-Info.plist` — from `GoogleService-Info.plist.example` template or Console.
+1. Copy `app/.env.example` → `app/.env` and fill in `FIREBASE_*` values.
+2. Generate native config (gitignored): from `app/`, run `.\scripts\write_firebase_native_config.ps1` (Windows) or `bash scripts/write_firebase_native_config.sh` after exporting those env vars (e.g. from `.env`).
+3. Run the app: `flutter run --dart-define-from-file=.env`
 
-If keys were ever pushed to git, rotate them in Firebase Console → Project settings → Your apps.
+CI uses the same `FIREBASE_*` secret names; see `.github/workflows/ci.yml`.
 
 ## Getting Started
 
