@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 
 import 'auth/auth_service.dart';
 import 'firebase_options.dart';
-import 'home_screen.dart';
 import 'trip_sync_main_shell.dart';
 
 Future<void> main() async {
@@ -53,7 +52,7 @@ class AuthGate extends StatelessWidget {
         }
         final user = snapshot.data;
         if (user != null) {
-          return TripSyncHomeScreen(
+          return TripSyncMainShell(
             userName: user.displayName ?? user.email,
           );
         }
@@ -86,7 +85,7 @@ class _TripSyncLandingScreenState extends State<TripSyncLandingScreen> {
     setState(() => _signingIn = true);
     try {
       await _authService.signInWithGoogle();
-      // AuthGate's StreamBuilder will swap to TripSyncHomeScreen automatically.
+      // AuthGate's StreamBuilder will swap to TripSyncMainShell automatically.
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
