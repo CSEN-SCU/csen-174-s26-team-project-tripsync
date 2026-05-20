@@ -3,21 +3,21 @@
 <plist version="1.0">
 <dict>
 	<key>CLIENT_ID</key>
-	<string>1051733606542-h6euaq1eppujjsur1dc7h1salvg62f53.apps.googleusercontent.com</string>
+	<string>YOUR_IOS_CLIENT_ID.apps.googleusercontent.com</string>
 	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.1051733606542-h6euaq1eppujjsur1dc7h1salvg62f53</string>
+	<string>com.googleusercontent.apps.YOUR_IOS_CLIENT_ID</string>
 	<key>API_KEY</key>
-	<string>AIzaSyD2Fz_e_FL4v0c0EgGnzovZ5WWaqOQlkaI</string>
+	<string>YOUR_IOS_API_KEY</string>
 	<key>GCM_SENDER_ID</key>
-	<string>1051733606542</string>
+	<string>YOUR_MESSAGING_SENDER_ID</string>
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
 	<string>edu.scu.orbit</string>
 	<key>PROJECT_ID</key>
-	<string>orbit-86c27</string>
+	<string>YOUR_PROJECT_ID</string>
 	<key>STORAGE_BUCKET</key>
-	<string>orbit-86c27.firebasestorage.app</string>
+	<string>YOUR_PROJECT_ID.firebasestorage.app</string>
 	<key>IS_ADS_ENABLED</key>
 	<false></false>
 	<key>IS_ANALYTICS_ENABLED</key>
@@ -29,6 +29,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:1051733606542:ios:8a229f2fb4d93a3065c9df</string>
+	<string>YOUR_IOS_APP_ID</string>
 </dict>
 </plist>
