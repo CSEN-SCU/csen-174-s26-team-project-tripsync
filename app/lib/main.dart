@@ -2,14 +2,17 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
+import 'app_messenger.dart';
 import 'auth/auth_service.dart';
 import 'firebase_options.dart';
-import 'trip_sync_main_shell.dart';
 import 'onboarding/firestore_preferences_service.dart';
 import 'onboarding/preferences_onboarding_screen.dart';
+import 'trip_sync_main_shell.dart';
+import 'tripsync_groq_config.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeGroqConfig();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
@@ -23,6 +26,7 @@ class TripSyncApp extends StatelessWidget {
   Widget build(BuildContext context) {
     const seedColor = Color(0xFF4E5BF2);
     return MaterialApp(
+      scaffoldMessengerKey: tripSyncMessengerKey,
       title: 'TripSync',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(

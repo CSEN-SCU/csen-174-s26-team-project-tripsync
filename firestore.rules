@@ -8,9 +8,9 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // POIs are seeded by teammate via admin SDK; signed-in users can read.
+    // POI catalog is public read (seeded reference data). Writes stay admin-only.
     match /pois/{poiId} {
-      allow read: if request.auth != null;
+      allow read: if true;
       allow write: if false;
     }
   }

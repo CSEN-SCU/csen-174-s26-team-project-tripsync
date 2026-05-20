@@ -7,9 +7,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
+import 'app_messenger.dart';
 import 'auth/auth_service.dart';
+import 'conversation_turn.dart';
 import 'groq_orpheus_tts.dart';
+import 'groq_poi_narrator.dart';
+import 'headset_media_bridge.dart';
 import 'location_service.dart';
+import 'models/trip_poi.dart';
+import 'poi/poi_query_result.dart';
+import 'poi/poi_repository.dart';
 import 'tripsync_groq_config.dart';
 
 /// Home: speaks a place recommendation (headphones / system route), then listens
@@ -29,10 +36,25 @@ class _TripSyncHomeScreenState extends State<TripSyncHomeScreen> {
   final LocationService _locationService = const LocationService();
   final AuthService _authService = AuthService();
   bool _signingOut = false;
+  final PoiRepository _poiRepository = PoiRepository();
 
-  /// Static copy for now; later this can come from location + LLM.
-  static const String _placeRecommendation =
-      'Crissy Field East Beach — flat walk, Golden Gate views, and room to spread out. Worth a stop if you are near the Marina.';
+  /// Stand-in for onboarding interests until preferences are wired in.
+  static const List<String> _hardcodedInterestTags = [
+    'art',
+    'culture',
+    'views',
+    'nature',
+  ];
+
+  static const String _fallbackRecommendation =
+      'No matching places nearby yet. Try moving closer to a park or landmark, or check back after we add more spots.';
+
+  String _placeRecommendation = _fallbackRecommendation;
+  TripPoi? _selectedPoi;
+  bool _poiLoading = true;
+  String? _nearbyPlaceLine;
+  final List<ConversationTurn> _conversationHistory = [];
+  bool _followUpLoading = false;
 
   bool _voiceReady = false;
   bool _voiceUnsupported = false;
@@ -40,11 +62,15 @@ class _TripSyncHomeScreenState extends State<TripSyncHomeScreen> {
   bool _isListening = false;
   bool _sessionBusy = false;
   bool _heardFinalThisSession = false;
+  bool _conversationActive = false;
 
-  String _statusMessage = 'Getting voice ready…';
+  /// How long you can pause mid-sentence before Orbit treats your turn as done.
+  static const Duration _pauseBeforeSend = Duration(seconds: 3);
+
+  String _statusMessage = 'Getting ready…';
+  /// Always updated when Orbit speaks so you can see which engine was used.
+  String _voiceEngineLabel = 'Voice: checking…';
   String? _liveTranscript;
-  String _ttsSourceLine =
-      'TTS: checking… (Groq Orpheus uses up to 200 characters per request.)';
 
   LocationReading? _locationReading;
   bool _locationLoading = true;
@@ -53,9 +79,118 @@ class _TripSyncHomeScreenState extends State<TripSyncHomeScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _bootstrapVoice();
-      _ensureLocation();
+      _loadLocationAndNearbyPoi();
     });
+  }
+
+  Future<void> _loadLocationAndNearbyPoi() async {
+    await _ensureLocation();
+    await _fetchNearbyPoi();
+    if (!mounted) return;
+    await _bootstrapVoice();
+  }
+
+  Future<void> _fetchNearbyPoi() async {
+    final reading = _locationReading;
+    if (reading == null || !reading.isGranted) {
+      if (!mounted) return;
+      setState(() {
+        _poiLoading = false;
+        _selectedPoi = null;
+        _placeRecommendation = _fallbackRecommendation;
+        _nearbyPlaceLine = null;
+        if (reading != null) {
+          _statusMessage = 'Turn on location to find places near you.';
+        }
+      });
+      return;
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _poiLoading = true;
+      _nearbyPlaceLine = null;
+      _statusMessage = 'Finding places near you…';
+    });
+
+    final result = await _poiRepository.findBestNearby(
+      latitude: reading.latitude!,
+      longitude: reading.longitude!,
+      interestTags: _hardcodedInterestTags,
+    );
+
+    developer.log(
+      'nearby=${result.nearbyCount} tagged=${result.taggedCount} '
+      'tagFallback=${result.usedTagFallback} nearestFallback=${result.usedNearestFallback} '
+      'poi=${result.poi?.id} err=${result.errorMessage}',
+      name: 'TripSync.poi_query',
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _poiLoading = false;
+      _selectedPoi = result.poi;
+      _placeRecommendation =
+          result.poi?.recommendationBlurb ?? _fallbackRecommendation;
+      _nearbyPlaceLine = _nearbyPlaceSubtitle(result);
+      if (result.hasError) {
+        _statusMessage = _friendlyError(result.errorMessage);
+      }
+    });
+
+    await _enrichRecommendationWithGroq();
+  }
+
+  Future<void> _enrichRecommendationWithGroq() async {
+    final poi = _selectedPoi;
+    if (poi == null) return;
+
+    final apiKey = groqApiKeyFromEnvironment();
+    if (apiKey.isEmpty) return;
+
+    if (!mounted) return;
+    setState(() {
+      _statusMessage = 'Orbit is researching ${poi.name}…';
+    });
+
+    final narration = await GroqPoiNarrator.narrate(
+      apiKey: apiKey,
+      poi: poi,
+      userInterests: _hardcodedInterestTags,
+      fallback: poi.recommendationBlurb,
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _placeRecommendation = narration.script;
+    });
+  }
+
+  String? _nearbyPlaceSubtitle(PoiQueryResult result) {
+    final poi = result.poi;
+    if (poi == null) return null;
+
+    final distanceFt = poi.distanceMeters != null
+        ? (poi.distanceMeters! * 3.28084).round()
+        : null;
+    if (distanceFt != null) {
+      return '${poi.name} · ~$distanceFt ft away';
+    }
+    return poi.name;
+  }
+
+  String _friendlyError(String? raw) {
+    final msg = raw?.toLowerCase() ?? '';
+    if (msg.contains('permission') || msg.contains('denied')) {
+      return 'Could not load places. Check your connection and try again.';
+    }
+    if (msg.contains('firestore') || msg.contains('seed')) {
+      return 'No places loaded yet. Try again in a moment.';
+    }
+    if (msg.contains('within') && msg.contains('mi')) {
+      return 'Nothing nearby right now. Try again when you are closer.';
+    }
+    return 'Something went wrong. Tap Try again on location.';
   }
 
   Future<void> _ensureLocation() async {
@@ -82,11 +217,24 @@ class _TripSyncHomeScreenState extends State<TripSyncHomeScreen> {
   @override
   void dispose() {
     unawaited(() async {
+      await HeadsetMediaBridge.instance.disarm();
       await _tts.stop();
       await _speech.stop();
       await _speech.cancel();
     }());
     super.dispose();
+  }
+
+  void _onHeadsetPauseEndConversation() {
+    if (!mounted || !_conversationActive) return;
+    unawaited(_endConversation());
+  }
+
+  Future<void> _armHeadsetPauseControls() async {
+    if (kIsWeb) return;
+    await HeadsetMediaBridge.instance.arm(
+      onPausePressed: _onHeadsetPauseEndConversation,
+    );
   }
 
   String _ttsPhrase(String raw) =>
@@ -103,6 +251,7 @@ class _TripSyncHomeScreenState extends State<TripSyncHomeScreen> {
     }
 
     try {
+      await HeadsetMediaBridge.instance.configureVoiceSession();
       await _tts.setLanguage('en-US');
       await _tts.setSpeechRate(0.48);
       await _tts.setVolume(1.0);
@@ -140,13 +289,22 @@ class _TripSyncHomeScreenState extends State<TripSyncHomeScreen> {
         return;
       }
 
+      await reloadGroqConfigIfNeeded();
+      final groqKey = groqApiKeyFromEnvironment();
       setState(() {
         _voiceReady = true;
-        _statusMessage = 'Starting…';
-        _ttsSourceLine = groqApiKeyFromEnvironment().isNotEmpty
-            ? 'TTS: Groq Orpheus — canopylabs/orpheus-v1-english, voice troy (max 200 chars per line).'
-            : 'TTS: on-device — add GROQ_API_KEY (see app/.env.example), then flutter run --dart-define-from-file=.env';
+        _voiceEngineLabel = groqKey.isNotEmpty
+            ? 'Voice: Orbit (Groq) ready'
+            : 'Voice: phone only — GROQ_API_KEY not loaded';
+        _statusMessage = groqKey.isNotEmpty
+            ? 'Starting…'
+            : 'Starting with phone voice — add GROQ_API_KEY to app/.env and rebuild.';
       });
+      if (groqKey.isEmpty) {
+        showTripSyncSnack(
+          'Orbit voice off: GROQ_API_KEY missing. Use app/.env and run flutter run from app/.',
+        );
+      }
       await _runSpeakThenListen();
     } catch (e, st) {
       developer.log('$e', name: 'TripSync.voice_boot', stackTrace: st);
@@ -163,25 +321,30 @@ class _TripSyncHomeScreenState extends State<TripSyncHomeScreen> {
     if (status == 'listening') {
       setState(() {
         _isListening = true;
-        _statusMessage = 'Listening — answer out loud.';
+        _statusMessage =
+            'Listening — pause when done, or tap AirPods pause to end.';
       });
       return;
     }
 
     if (status == 'notListening' || status == 'done') {
+      if (!mounted) return;
       setState(() => _isListening = false);
-      if (!_heardFinalThisSession) {
+      if (!_heardFinalThisSession && _conversationActive) {
         final fallback = _liveTranscript?.trim() ?? '';
         if (fallback.isNotEmpty) {
           _heardFinalThisSession = true;
-          _logVoiceReply(fallback);
-        } else if (_voiceReady && !_isSpeaking) {
+          unawaited(_handleVoiceReply(fallback));
+        } else if (!_isSpeaking && !_followUpLoading) {
           setState(() {
-            _statusMessage = 'Did not catch that. Tap “Replay suggestion” and try again.';
+            _sessionBusy = false;
+            _statusMessage =
+                'Did not catch that. Keep talking after Orbit speaks.';
           });
         }
+      } else if (!_conversationActive && !_sessionBusy) {
+        setState(() => _sessionBusy = false);
       }
-      setState(() => _sessionBusy = false);
     }
   }
 
@@ -194,69 +357,57 @@ class _TripSyncHomeScreenState extends State<TripSyncHomeScreen> {
 
     if (!mounted) return;
     setState(() {
+      _conversationActive = true;
       _sessionBusy = true;
       _heardFinalThisSession = false;
       _liveTranscript = null;
+      _conversationHistory.clear();
+      _conversationHistory.add(
+        ConversationTurn(isUser: false, text: _placeRecommendation),
+      );
+      _followUpLoading = false;
       _isSpeaking = true;
-      _statusMessage = 'Playing suggestion through your headphones or speaker…';
+      _statusMessage =
+          'Orbit is speaking… (AirPods pause ends conversation)';
     });
 
-    final spoken = _ttsPhrase(_placeRecommendation);
-    final groqKey = groqApiKeyFromEnvironment();
-    try {
-      if (groqKey.isNotEmpty) {
-        final orpheusInput = GroqOrpheusTts.buildEnglishInput(spoken);
-        final wav = await GroqOrpheusTts.synthesizeEnglishWav(
-          apiKey: groqKey,
-          input: orpheusInput,
-          voice: 'troy',
-        );
-        await GroqOrpheusTts.playWavBytes(wav);
-      } else {
-        await _tts.speak(spoken);
-      }
-    } catch (e, st) {
-      developer.log('$e', name: 'TripSync.tts_speak', stackTrace: st);
-      if (groqKey.isNotEmpty) {
-        try {
-          await _tts.speak(spoken);
-          if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Groq TTS failed; used on-device voice for this playback.'),
-            ),
-          );
-        } catch (e2, st2) {
-          developer.log('$e2', name: 'TripSync.tts_fallback', stackTrace: st2);
-          if (!mounted) return;
-          setState(() {
-            _sessionBusy = false;
-            _isSpeaking = false;
-            _statusMessage =
-                'Could not play audio (Groq and on-device). Check network and volume.';
-          });
-          return;
-        }
-      } else {
-        if (!mounted) return;
-        setState(() {
-          _sessionBusy = false;
-          _isSpeaking = false;
-          _statusMessage = 'Could not play audio. Check volume and try replay.';
-        });
-        return;
-      }
-    }
+    final spoke = await _speakScript(_placeRecommendation);
+    if (!spoke) return;
 
     if (!mounted) return;
+    await _startListening();
+  }
+
+  /// Listens until you pause briefly (~3s), then sends your words to Orbit.
+  String _shortTtsError(Object error) {
+    final text = error.toString();
+    if (text.contains('429')) return 'rate limited';
+    if (text.contains('401')) return 'invalid API key';
+    if (text.contains('GroqOrpheusTtsException')) {
+      return text.replaceFirst('GroqOrpheusTtsException', '').trim();
+    }
+    return 'playback error';
+  }
+
+  Future<void> _startListening() async {
+    if (!_voiceReady || _voiceUnsupported || !mounted) return;
+
+    await HeadsetMediaBridge.instance.configureVoiceSession();
+
     setState(() {
-      _isSpeaking = false;
+      _conversationActive = true;
+      _heardFinalThisSession = false;
+      _liveTranscript = null;
       _isListening = true;
-      _statusMessage = 'Listening — answer out loud.';
+      _sessionBusy = true;
+      _statusMessage =
+          'Listening — pause when done, or tap AirPods pause to end.';
     });
 
+    await _armHeadsetPauseControls();
+
     await Future<void>.delayed(const Duration(milliseconds: 400));
-    if (!mounted || !_voiceReady) return;
+    if (!mounted || !_voiceReady || !_conversationActive) return;
 
     try {
       await _speech.listen(
@@ -265,16 +416,13 @@ class _TripSyncHomeScreenState extends State<TripSyncHomeScreen> {
           setState(() => _liveTranscript = r.recognizedWords);
           if (r.finalResult) {
             final text = r.recognizedWords.trim();
-            if (text.isEmpty) return;
-            if (!_heardFinalThisSession) {
-              _heardFinalThisSession = true;
-              _logVoiceReply(text);
-            }
-            unawaited(_speech.stop());
+            if (text.isEmpty || _heardFinalThisSession) return;
+            _heardFinalThisSession = true;
+            unawaited(_handleVoiceReply(text));
           }
         },
-        listenFor: const Duration(seconds: 45),
-        pauseFor: const Duration(seconds: 4),
+        listenFor: const Duration(seconds: 90),
+        pauseFor: _pauseBeforeSend,
         listenOptions: SpeechListenOptions(
           listenMode: ListenMode.dictation,
           partialResults: true,
@@ -285,13 +433,116 @@ class _TripSyncHomeScreenState extends State<TripSyncHomeScreen> {
       developer.log('$e', name: 'TripSync.listen', stackTrace: st);
       if (!mounted) return;
       setState(() {
+        _conversationActive = false;
         _sessionBusy = false;
-        _statusMessage = 'Could not start listening. Tap replay to try again.';
+        _isListening = false;
+        _statusMessage = 'Could not start listening. Tap Listen again.';
       });
     }
   }
 
-  void _logVoiceReply(String text) {
+  Future<void> _endConversation() async {
+    if (!_conversationActive) return;
+    _conversationActive = false;
+    _heardFinalThisSession = true;
+    await HeadsetMediaBridge.instance.disarm();
+    await _speech.stop();
+    await _speech.cancel();
+    await _tts.stop();
+
+    if (!mounted) return;
+    setState(() {
+      _isListening = false;
+      _isSpeaking = false;
+      _sessionBusy = false;
+      _followUpLoading = false;
+      _statusMessage =
+          'Conversation ended. Tap Listen again to start over.';
+    });
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Conversation ended.')),
+      );
+    }
+  }
+
+  void _setVoiceEngineLabel(String label) {
+    if (!mounted) return;
+    setState(() => _voiceEngineLabel = label);
+  }
+
+  void _notifyVoiceFallback(String reason) {
+    final message = 'Orbit voice unavailable ($reason). Using phone voice.';
+    _setVoiceEngineLabel('Voice: phone (fallback — $reason)');
+    showTripSyncSnack(message);
+    developer.log(message, name: 'TripSync.tts_route');
+  }
+
+  Future<void> _speakWithDeviceVoice(String spoken, String reason) async {
+    _notifyVoiceFallback(reason);
+    await _tts.speak(spoken);
+  }
+
+  /// Speaks [raw] via Groq Orpheus or on-device TTS. Returns false if playback failed.
+  Future<bool> _speakScript(String raw) async {
+    final spoken = _ttsPhrase(raw);
+    await reloadGroqConfigIfNeeded();
+    final groqKey = groqApiKeyFromEnvironment();
+    await HeadsetMediaBridge.instance.disarm();
+    try {
+      if (groqKey.isEmpty) {
+        developer.log(
+          'GROQ_API_KEY missing — using on-device TTS',
+          name: 'TripSync.tts_route',
+        );
+        await _speakWithDeviceVoice(spoken, 'no API key in app');
+        return true;
+      }
+
+      _setVoiceEngineLabel('Voice: Orbit (Groq)…');
+      await HeadsetMediaBridge.instance.configurePlaybackSession();
+      developer.log(
+        'Using Groq Orpheus voice (${spoken.length} chars)',
+        name: 'TripSync.tts_route',
+      );
+      await GroqOrpheusTts.speakLongEnglish(
+        apiKey: groqKey,
+        plainText: spoken,
+        voice: 'troy',
+        onExternalPause: _onHeadsetPauseEndConversation,
+      );
+      _setVoiceEngineLabel('Voice: Orbit (Groq)');
+      return true;
+    } catch (e, st) {
+      developer.log('$e', name: 'TripSync.tts_speak', stackTrace: st);
+      if (groqKey.isNotEmpty) {
+        developer.log(
+          'Groq voice failed, falling back to on-device TTS: $e',
+          name: 'TripSync.tts_route',
+        );
+        try {
+          await _speakWithDeviceVoice(spoken, _shortTtsError(e));
+          return true;
+        } catch (e2, st2) {
+          developer.log('$e2', name: 'TripSync.tts_fallback', stackTrace: st2);
+        }
+      }
+      if (!mounted) return false;
+      setState(() {
+        _sessionBusy = false;
+        _isSpeaking = false;
+        _voiceEngineLabel = 'Voice: failed — check volume and network';
+        _statusMessage = groqKey.isNotEmpty
+            ? 'Could not play audio (Groq and on-device). Check network and volume.'
+            : 'Could not play audio. Check volume and try replay.';
+      });
+      return false;
+    }
+  }
+
+  Future<void> _handleVoiceReply(String text) async {
+    await _speech.stop();
+
     final user = widget.userName?.trim();
     final prefix =
         user != null && user.isNotEmpty ? 'user=$user' : 'user=anonymous';
@@ -303,13 +554,68 @@ class _TripSyncHomeScreenState extends State<TripSyncHomeScreen> {
     );
 
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Logged what we heard.')),
-    );
+    final priorTurns = List<ConversationTurn>.from(_conversationHistory);
     setState(() {
-      _statusMessage = 'Reply logged. Tap replay for another round.';
-      _sessionBusy = false;
+      _sessionBusy = true;
+      _followUpLoading = true;
+      _conversationHistory.add(ConversationTurn(isUser: true, text: text));
+      _statusMessage = 'Thinking about your question…';
     });
+
+    final apiKey = groqApiKeyFromEnvironment();
+    final narration = await GroqPoiNarrator.replyToFollowUp(
+      apiKey: apiKey,
+      userTranscript: text,
+      orbitSuggestion: _placeRecommendation,
+      poi: _selectedPoi,
+      userInterests: _hardcodedInterestTags,
+      priorTurns: priorTurns,
+    );
+
+    developer.log(
+      'follow_up search=${narration.usedWebSearch} sources=${narration.sourceUrls.length}',
+      name: 'TripSync.groq_follow_up',
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _followUpLoading = false;
+      _conversationHistory.add(
+        ConversationTurn(isUser: false, text: narration.script),
+      );
+      _isSpeaking = true;
+      _statusMessage = 'Answering your question…';
+    });
+
+    final spoke = await _speakScript(narration.script);
+    if (!mounted) return;
+
+    if (!mounted) return;
+
+    if (_conversationActive) {
+      setState(() {
+        _isSpeaking = false;
+        _statusMessage = spoke
+            ? 'Orbit replied — listening when you are ready.'
+            : 'Answer is on screen — listening when you are ready.';
+      });
+      await _startListening();
+      return;
+    }
+
+    setState(() {
+      _isSpeaking = false;
+      _sessionBusy = false;
+      _statusMessage = spoke
+          ? 'Tap Listen again for another round.'
+          : 'Answer is on screen. Tap Listen again to retry voice.';
+    });
+
+    if (mounted && spoke) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Orbit replied.')),
+      );
+    }
   }
 
   Future<bool> _confirmSignOut() async {
@@ -417,37 +723,126 @@ class _TripSyncHomeScreenState extends State<TripSyncHomeScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Voice suggestion',
+                      'Nearby',
                       style: theme.textTheme.labelLarge?.copyWith(
                         color: theme.colorScheme.primary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Text(
-                      _placeRecommendation,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.92),
-                        height: 1.35,
+                    if (_conversationHistory.isEmpty)
+                      Text(
+                        _placeRecommendation,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: Colors.white.withValues(alpha: 0.92),
+                          height: 1.35,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _ttsSourceLine,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.5),
-                        height: 1.35,
+                    if (_nearbyPlaceLine != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        _nearbyPlaceLine!,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: Colors.white.withValues(alpha: 0.55),
+                          height: 1.35,
+                        ),
                       ),
-                    ),
+                    ],
+                    if (_poiLoading) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        'Finding places near you…',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: Colors.white.withValues(alpha: 0.55),
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 20),
                     _LocationPanel(
                       loading: _locationLoading,
                       reading: _locationReading,
                       onRetry: () {
-                        setState(() => _locationLoading = true);
-                        _ensureLocation();
+                        setState(() {
+                          _locationLoading = true;
+                          _poiLoading = true;
+                        });
+                        _loadLocationAndNearbyPoi();
                       },
                     ),
+                    if (_conversationHistory.isNotEmpty || _followUpLoading) ...[
+                      const SizedBox(height: 20),
+                      Text(
+                        'Conversation',
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      ..._conversationHistory.map(
+                        (turn) => Padding(
+                          padding: const EdgeInsets.only(bottom: 14),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                turn.isUser ? 'You' : 'Orbit',
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  color: turn.isUser
+                                      ? Colors.white.withValues(alpha: 0.55)
+                                      : theme.colorScheme.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                turn.text,
+                                style: (turn.isUser
+                                        ? theme.textTheme.bodyMedium
+                                        : theme.textTheme.titleMedium)
+                                    ?.copyWith(
+                                  color: Colors.white.withValues(
+                                    alpha: turn.isUser ? 0.85 : 0.92,
+                                  ),
+                                  fontStyle: turn.isUser
+                                      ? FontStyle.italic
+                                      : FontStyle.normal,
+                                  height: 1.35,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      if (_followUpLoading) ...[
+                        Text(
+                          'Orbit',
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Researching an answer…',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: Colors.white.withValues(alpha: 0.65),
+                            height: 1.35,
+                          ),
+                        ),
+                      ],
+                      if (_conversationHistory.any((t) => t.isUser)) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          'Doesn\'t look right? Tap Listen again and ask once more.',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: Colors.white.withValues(alpha: 0.45),
+                            height: 1.3,
+                          ),
+                        ),
+                      ],
+                    ],
                     const SizedBox(height: 16),
                     Container(
                       width: double.infinity,
@@ -484,11 +879,22 @@ class _TripSyncHomeScreenState extends State<TripSyncHomeScreen> {
                               ),
                             ],
                           ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _voiceEngineLabel,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: _voiceEngineLabel.contains('Orbit (Groq)')
+                                  ? theme.colorScheme.primary
+                                  : Colors.orange.shade300,
+                              fontWeight: FontWeight.w600,
+                              height: 1.3,
+                            ),
+                          ),
                           if (_liveTranscript != null &&
                               _liveTranscript!.trim().isNotEmpty) ...[
                             const SizedBox(height: 12),
                             Text(
-                              'Live transcript',
+                              'Hearing you',
                               style: theme.textTheme.labelSmall?.copyWith(
                                 color: Colors.white.withValues(alpha: 0.55),
                               ),
@@ -505,6 +911,18 @@ class _TripSyncHomeScreenState extends State<TripSyncHomeScreen> {
                         ],
                       ),
                     ),
+                    if (_conversationActive &&
+                        (_isListening || _isSpeaking || _followUpLoading)) ...[
+                      const SizedBox(height: 10),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed:
+                              _followUpLoading ? null : _endConversation,
+                          child: const Text('End conversation'),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 16),
                     SizedBox(
                       width: double.infinity,
@@ -512,20 +930,19 @@ class _TripSyncHomeScreenState extends State<TripSyncHomeScreen> {
                         onPressed: (!_voiceReady ||
                                 _voiceUnsupported ||
                                 _sessionBusy ||
-                                _isSpeaking ||
-                                _isListening)
+                                _followUpLoading ||
+                                _isSpeaking)
                             ? null
-                            : () => _runSpeakThenListen(),
+                            : () {
+                                _conversationActive = false;
+                                _runSpeakThenListen();
+                              },
                         icon: const Icon(Icons.replay_rounded),
-                        label: const Text('Replay suggestion & listen again'),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Later: TripSync will be able to run in the background and ping you with nearby suggestions when you turn that on.',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.55),
-                        height: 1.35,
+                        label: Text(
+                          _conversationActive
+                              ? 'Start over'
+                              : 'Listen again',
+                        ),
                       ),
                     ),
                   ],
@@ -627,14 +1044,10 @@ class _LocationPanel extends StatelessWidget {
     final r = reading!;
     switch (r.outcome) {
       case LocationOutcome.granted:
-        final lat = r.latitude?.toStringAsFixed(5) ?? '?';
-        final lng = r.longitude?.toStringAsFixed(5) ?? '?';
-        final acc = r.accuracyMeters;
-        final accLine = acc != null ? ' · ±${acc.toStringAsFixed(0)} m' : '';
         return (
           Icons.location_on_rounded,
-          'Location found',
-          '$lat, $lng$accLine — nearby place pings coming next sprint.',
+          'Location on',
+          'Using your position to find nearby spots.',
         );
       case LocationOutcome.denied:
         return (
