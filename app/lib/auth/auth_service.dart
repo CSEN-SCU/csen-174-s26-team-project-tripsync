@@ -38,6 +38,20 @@ class AuthService {
     return user;
   }
 
+  Future<User?> signInAnonymously({required String displayName}) async {
+    final result = await _auth.signInAnonymously();
+    final user = result.user;
+    if (user != null) {
+      final trimmedName = displayName.trim();
+      if (trimmedName.isNotEmpty) {
+        await user.updateDisplayName(trimmedName);
+        await user.reload();
+      }
+      await _ensureUserProfile(_auth.currentUser ?? user);
+    }
+    return _auth.currentUser ?? user;
+  }
+
   Future<void> signOut() async {
     await _googleSignIn.signOut();
     await _auth.signOut();
