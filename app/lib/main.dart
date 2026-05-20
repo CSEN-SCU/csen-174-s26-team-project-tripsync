@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'auth/auth_service.dart';
 import 'firebase_options.dart';
 import 'home_screen.dart';
+import 'trip_sync_main_shell.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -108,7 +109,7 @@ class _TripSyncLandingScreenState extends State<TripSyncLandingScreen> {
     if (!context.mounted) return;
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (context) => TripSyncHomeScreen(userName: enteredName),
+        builder: (context) => TripSyncMainShell(userName: enteredName),
       ),
     );
   }
