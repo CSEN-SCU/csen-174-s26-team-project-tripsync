@@ -4,7 +4,9 @@ import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, kIsWeb, TargetPlatform;
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
 import 'auth/auth_service.dart';
@@ -539,6 +541,73 @@ class _TripSyncHomeScreenState extends State<TripSyncHomeScreen> {
   }
 }
 
+/// Inline interactive map centered on the user's current position.
+///
+/// Uses OpenStreetMap tiles (no API key, free for low volume; we set
+/// `userAgentPackageName` so OSM can identify the client per their policy).
+/// Pan + pinch-zoom are enabled via `InteractiveFlag.all`. Sprint 2 will
+/// add a `MarkerLayer` for nearby POIs at the spot marked below.
+class _MapPreview extends StatelessWidget {
+  const _MapPreview({required this.latitude, required this.longitude});
+
+  final double latitude;
+  final double longitude;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final center = LatLng(latitude, longitude);
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(14),
+      child: SizedBox(
+        height: 240,
+        child: FlutterMap(
+          options: MapOptions(
+            initialCenter: center,
+            initialZoom: 15,
+            interactionOptions: const InteractionOptions(
+              flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+            ),
+          ),
+          children: [
+            TileLayer(
+              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              userAgentPackageName: 'edu.scu.orbit',
+              tileProvider: NetworkTileProvider(),
+            ),
+            // TODO(sprint-2): replace with a MarkerLayer fed by nearby POIs.
+            MarkerLayer(
+              markers: [
+                Marker(
+                  point: center,
+                  width: 22,
+                  height: 22,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2.5),
+                      boxShadow: [
+                        BoxShadow(
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: 0.45,
+                          ),
+                          blurRadius: 10,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _LocationPanel extends StatelessWidget {
   const _LocationPanel({
     required this.loading,
@@ -581,6 +650,10 @@ class _LocationPanel extends StatelessWidget {
               ),
             ],
           ),
+          if (_grantedCoords() case final coords?) ...[
+            const SizedBox(height: 12),
+            _MapPreview(latitude: coords.$1, longitude: coords.$2),
+          ],
           if (detail != null) ...[
             const SizedBox(height: 8),
             Text(
@@ -615,6 +688,17 @@ class _LocationPanel extends StatelessWidget {
         outcome == LocationOutcome.error;
   }
 
+  /// Returns (lat, lng) when the reading is granted with coordinates;
+  /// `null` otherwise. Used to decide whether the map preview should render.
+  (double, double)? _grantedCoords() {
+    final r = reading;
+    if (r == null || !r.isGranted) return null;
+    final lat = r.latitude;
+    final lng = r.longitude;
+    if (lat == null || lng == null) return null;
+    return (lat, lng);
+  }
+
   (IconData, String, String?) _renderContent() {
     if (loading || reading == null) {
       return (
@@ -634,7 +718,7 @@ class _LocationPanel extends StatelessWidget {
         return (
           Icons.location_on_rounded,
           'Location found',
-          '$lat, $lng$accLine — nearby place pings coming next sprint.',
+          '$lat, $lng$accLine',
         );
       case LocationOutcome.denied:
         return (
