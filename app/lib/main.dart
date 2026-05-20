@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'auth/auth_service.dart';
 import 'firebase_options.dart';
 import 'trip_sync_main_shell.dart';
+import 'onboarding/firestore_preferences_service.dart';
+import 'onboarding/preferences_onboarding_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,8 +39,16 @@ class TripSyncApp extends StatelessWidget {
 
 /// Listens to FirebaseAuth and routes signed-in users straight to home.
 /// Signed-out users see the landing screen with Google sign-in + guest fallback.
-class AuthGate extends StatelessWidget {
+class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
+
+  @override
+  State<AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<AuthGate> {
+  final FirestorePreferencesService _preferencesService =
+      FirestorePreferencesService();
 
   @override
   Widget build(BuildContext context) {
@@ -52,8 +62,29 @@ class AuthGate extends StatelessWidget {
         }
         final user = snapshot.data;
         if (user != null) {
-          return TripSyncMainShell(
-            userName: user.displayName ?? user.email,
+          final userName = user.displayName ?? user.email;
+          return FutureBuilder(
+            future: _preferencesService.load(user.uid),
+            builder: (context, preferencesSnapshot) {
+              if (preferencesSnapshot.connectionState ==
+                  ConnectionState.waiting) {
+                return const Scaffold(
+                  body: Center(child: CircularProgressIndicator()),
+                );
+              }
+
+              final preferences = preferencesSnapshot.data;
+              if (preferences != null && preferences.interests.isNotEmpty) {
+                return TripSyncMainShell(userName: userName);
+              }
+
+              return PreferencesOnboardingScreen(
+                userId: user.uid,
+                userName: userName,
+                preferencesService: _preferencesService,
+                onComplete: () => setState(() {}),
+              );
+            },
           );
         }
         return const TripSyncLandingScreen();
@@ -85,7 +116,7 @@ class _TripSyncLandingScreenState extends State<TripSyncLandingScreen> {
     setState(() => _signingIn = true);
     try {
       await _authService.signInWithGoogle();
-      // AuthGate's StreamBuilder will swap to TripSyncMainShell automatically.
+      // AuthGate's StreamBuilder routes new users through preference onboarding.
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -96,7 +127,8 @@ class _TripSyncLandingScreenState extends State<TripSyncLandingScreen> {
     }
   }
 
-  void _continueAsGuest() {
+  Future<void> _continueAsGuest() async {
+    if (_signingIn) return;
     final enteredName = _nameController.text.trim();
     if (enteredName.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -105,12 +137,18 @@ class _TripSyncLandingScreenState extends State<TripSyncLandingScreen> {
       return;
     }
 
-    if (!context.mounted) return;
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (context) => TripSyncMainShell(userName: enteredName),
-      ),
-    );
+    setState(() => _signingIn = true);
+    try {
+      await _authService.signInAnonymously(displayName: enteredName);
+      // AuthGate routes anonymous users through preference onboarding.
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not continue as guest: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _signingIn = false);
+    }
   }
 
   @override
@@ -294,7 +332,7 @@ class _TripSyncLandingScreenState extends State<TripSyncLandingScreen> {
                             SizedBox(
                               width: double.infinity,
                               child: OutlinedButton(
-                                onPressed: _continueAsGuest,
+                                onPressed: _signingIn ? null : _continueAsGuest,
                                 style: OutlinedButton.styleFrom(
                                   foregroundColor: Colors.white,
                                   minimumSize: const Size.fromHeight(48),
@@ -313,7 +351,7 @@ class _TripSyncLandingScreenState extends State<TripSyncLandingScreen> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Guest mode keeps your name on this device only. Sign in with Google to sync preferences and saved places across devices.',
+                        'Guest mode creates a private anonymous profile so TripSync can save your onboarding preferences. Sign in with Google to sync across devices.',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: Colors.white.withValues(alpha: 0.58),
                           height: 1.3,

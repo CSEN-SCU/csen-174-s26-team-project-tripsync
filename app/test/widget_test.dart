@@ -10,6 +10,6 @@ void main() {
 
     expect(find.text('TripSync'), findsOneWidget);
     expect(find.text('What should we call you?'), findsOneWidget);
-    expect(find.text('Continue'), findsOneWidget);
+    expect(find.text('Continue as guest'), findsOneWidget);
   });
 }
