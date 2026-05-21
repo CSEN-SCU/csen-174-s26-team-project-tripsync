@@ -158,57 +158,52 @@ C4Context
 
 ### Container diagram
 
-**Narrative.** Inside **TripSync — Flutter mobile app**, the **App shell** routes auth and onboarding. **Auth** and **User preferences** talk to **Firebase Auth** and **Firestore**. On the Voice tab, **Location service** reads GPS, **POI repository** queries and ranks Firestore POIs, **POI narrator** calls **Groq** for scripts and follow-ups, and **Voice session** orchestrates STT/TTS (Groq Orpheus or OS fallback). The **LLM tab** uses the **`llm_integration`** package against the same **Groq** API. Repo packages **location_engine** and **voice_interface** and runtime **maps deep link** are shown as planned/not wired. **Admin tooling** runs off-device.
+This diagram uses the **same four containers and relationship shape** as the target diagram in [`architecture.md`](architecture.md) (Location Engine → POI Ranker → Conversation Manager ↔ Voice Interface). Names and edges match the target where the code does; labels call out gaps (geofencing, preference reads on Voice, maps deep link, inferred-preference writes).
+
+**Narrative.** On the Voice tab, `TripSyncHomeScreen` orchestrates the loop: **Location Engine** (`location_service.dart`) gets a foreground GPS fix, then **POI Ranker** (`poi_repository.dart`) queries Firestore and scores by distance + tags. The top POI flows to **Conversation Manager** (`groq_poi_narrator.dart` for scripts and follow-ups; `llm_integration` on a separate LLM tab). **Voice Interface** (`home_screen.dart` + `groq_orpheus_tts.dart`) is the only path to the OS audio stack.
+
+| Target container (`architecture.md`) | Current implementation |
+|-----------------------------------|-------------------------|
+| Location Engine | `app/lib/location_service.dart` — foreground `geolocator` only |
+| POI Ranker | `app/lib/poi/poi_repository.dart` — geohash + tag scoring |
+| Conversation Manager | `app/lib/groq_poi_narrator.dart` + voice loop in `home_screen.dart`; LLM tab: `llm_integration_screen.dart` |
+| Voice Interface | `home_screen.dart` (`speech_to_text`, `flutter_tts`) + `groq_orpheus_tts.dart` |
+| Cloud DB | Cloud Firestore (`pois`, `users`) |
+| LLM API | Groq (`groq/compound-mini`, `llama-3.3-70b-versatile`, Orpheus TTS) |
+
+**Deltas from target edges**
+
+| Target relationship | Today |
+|---------------------|--------|
+| Location Engine → Cloud DB (geo queries) | POI Ranker queries Firestore; Location Engine only talks to GPS |
+| POI Ranker → Cloud DB (read preferences) | Preferences saved at onboarding; Voice tab still uses hardcoded interest tags |
+| Conversation Manager → Cloud DB (inferred preferences) | Not implemented |
+| Conversation Manager → Maps app | Not implemented |
 
 ```mermaid
 C4Container
-    title Containers — TripSync (as implemented)
-    Person(traveler, "Traveler", "Voice + LLM interaction")
-    SystemDb_Ext(firestore, "Cloud Firestore", "POIs, users, preferences")
-    System_Ext(fb_auth, "Firebase Auth", "Identity")
-    System_Ext(groq, "Groq API", "TTS + chat + Compound search")
-    System_Ext(audio, "OS audio stack", "STT + fallback TTS")
-    System_Ext(gps, "OS location", "GPS")
-    System_Ext(osm, "OSM tiles", "Map preview")
-    System_Ext(maps, "Maps app", "Not wired")
+    title Containers — TripSync (from Orbit target layout)
+    Person(traveler, "Traveler", "Explores on foot; hears prompts and replies by voice")
+    SystemDb_Ext(db, "Cloud Firestore", "Curated geo POIs, accounts, preferences")
+    System_Ext(LLM, "Groq API", "Narration, follow-ups, LLM tab, Orpheus TTS")
+    System_Ext(maps, "Maps app", "Planned — no deep link yet")
+    System_Ext(audio, "OS audio stack", "STT, flutter_tts fallback, Orpheus playback")
     System_Boundary(app, "TripSync — Flutter mobile app") {
-        Container(shell, "App shell", "main.dart, AuthGate, TripSyncMainShell", "Auth routing; Voice / LLM tabs")
-        Container(auth, "Auth", "auth_service.dart", "Google + guest; user profile doc")
-        Container(prefs, "User preferences", "firestore_preferences_service.dart", "Onboarding interests in Firestore")
-        Container(location, "Location service", "location_service.dart", "Foreground consent + getCurrentPosition")
-        Container(poi_repo, "POI repository", "poi_repository.dart", "Geohash query, tag score, rank")
-        Container(narrator, "POI narrator", "groq_poi_narrator.dart", "Intro + follow-up scripts via Groq")
-        Container(voice, "Voice session", "home_screen.dart", "Speak-listen loop; STT; Orpheus or flutter_tts")
-        Container(tts, "Groq Orpheus TTS", "groq_orpheus_tts.dart", "WAV synthesis for spoken lines")
-        Container(llm_tab, "LLM tab", "llm_integration_screen.dart + llm_integration", "Text place description + travel Q&A")
+        Container(location, "Location Engine", "location_service.dart", "Foreground position; no geofencing yet")
+        Container(ranker, "POI Ranker", "poi_repository.dart", "Geohash query + interest score; no cooldown caps")
+        Container(convo, "Conversation Manager", "groq_poi_narrator.dart, home_screen.dart", "Voice scripts + follow-ups; LLM tab separate")
+        Container(voice, "Voice Interface", "home_screen.dart, groq_orpheus_tts.dart", "speech_to_text + TTS")
     }
-    System_Boundary(stubs, "Repo packages — not in app runtime") {
-        Container(loc_pkg, "location_engine", "Dart package", "Ranker + APIs; tested only")
-        Container(voice_pkg, "voice_interface", "Dart package", "normalizeTranscript stub")
-    }
-    System_Boundary(admin, "Admin tooling (Node)") {
-        Container(seed, "POI pipeline", "geo-poi-database/", "OSM → JSON → Firestore seed")
-    }
-    Rel(traveler, shell, "Opens app")
-    Rel(shell, auth, "Sign-in gate")
-    Rel(shell, prefs, "Onboarding")
-    Rel(shell, voice, "Voice tab")
-    Rel(shell, llm_tab, "LLM tab")
-    Rel(auth, fb_auth, "Credentials")
-    Rel(auth, firestore, "users/{uid}")
-    Rel(prefs, firestore, "preferences")
-    Rel(voice, location, "Request position")
-    Rel(location, gps, "getCurrentPosition")
-    Rel(voice, poi_repo, "findBestNearby")
-    Rel(poi_repo, firestore, "Geo + tag queries on pois")
-    Rel(voice, narrator, "Script for selected POI")
-    Rel(narrator, groq, "Chat completions / Compound")
-    Rel(voice, tts, "Synthesize line")
-    Rel(tts, groq, "Orpheus speech API")
-    Rel(voice, audio, "STT + playback")
-    Rel(voice, osm, "Map preview tiles")
-    Rel(llm_tab, groq, "LlmClient.completeText")
-    Rel(seed, firestore, "firebase-admin writes pois")
+    Rel(traveler, voice, "Hears TTS; speaks replies")
+    Rel(location, ranker, "After GPS fix, home loads nearby POIs")
+    Rel(ranker, db, "Geo queries on pois")
+    Rel(ranker, convo, "Top POI / ping decision")
+    Rel(convo, voice, "Text to speak")
+    Rel(voice, convo, "Transcribed user text")
+    Rel(convo, LLM, "LLM request / response")
+    Rel(convo, maps, "Planned: launch directions")
+    Rel(convo, db, "Planned: persist inferred preferences")
+    Rel(voice, audio, "Plays prompts; captures speech")
 ```
 
 ---
