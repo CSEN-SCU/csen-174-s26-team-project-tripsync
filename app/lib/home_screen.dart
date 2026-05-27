@@ -17,13 +17,16 @@ import 'groq_poi_narrator.dart';
 import 'headset_media_bridge.dart';
 import 'location_service.dart';
 import 'models/trip_poi.dart';
-import 'poi/poi_query_result.dart';
+import 'onboarding/firestore_preferences_service.dart';
+import 'onboarding/preferences_service.dart';
 import 'poi/poi_repository.dart';
 import 'orbit_groq_config.dart';
 import 'preferences/preferences_screen.dart';
 
-/// Home: speaks a place recommendation (headphones / system route), then listens
-/// and logs your spoken reply. Background auto-pings are planned for a later build.
+enum _InputMode { voice, keyboard }
+
+/// Home: three vertical thirds — map, chat, input. Input is either a
+/// large voice mic or a typed text box, toggled inline.
 class OrbitHomeScreen extends StatefulWidget {
   const OrbitHomeScreen({
     super.key,
@@ -43,6 +46,14 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
   final SpeechToText _speech = SpeechToText();
   final LocationService _locationService = const LocationService();
   final PoiRepository _poiRepository = PoiRepository();
+  final PreferencesService _preferencesService = FirestorePreferencesService();
+
+  final ScrollController _chatScrollController = ScrollController();
+  final TextEditingController _textInputController = TextEditingController();
+  final FocusNode _textInputFocus = FocusNode();
+
+  late List<String> _currentInterests;
+  _InputMode _inputMode = _InputMode.voice;
 
   static const String _fallbackRecommendation =
       'No matching places nearby yet. Try moving closer to a park or landmark, or check back after we add more spots.';
@@ -50,7 +61,6 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
   String _placeRecommendation = _fallbackRecommendation;
   TripPoi? _selectedPoi;
   bool _poiLoading = true;
-  String? _nearbyPlaceLine;
   final List<ConversationTurn> _conversationHistory = [];
   bool _followUpLoading = false;
 
@@ -61,13 +71,12 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
   bool _sessionBusy = false;
   bool _heardFinalThisSession = false;
   bool _conversationActive = false;
+  bool _sendingText = false;
 
   /// How long you can pause mid-sentence before Orbit treats your turn as done.
   static const Duration _pauseBeforeSend = Duration(seconds: 3);
 
   String _statusMessage = 'Getting ready…';
-  /// Always updated when Orbit speaks so you can see which engine was used.
-  String _voiceEngineLabel = 'Voice: checking…';
   String? _liveTranscript;
 
   LocationReading? _locationReading;
@@ -76,6 +85,7 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
   @override
   void initState() {
     super.initState();
+    _currentInterests = List.of(widget.interests);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadLocationAndNearbyPoi();
     });
@@ -96,7 +106,6 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
         _poiLoading = false;
         _selectedPoi = null;
         _placeRecommendation = _fallbackRecommendation;
-        _nearbyPlaceLine = null;
         if (reading != null) {
           _statusMessage = 'Turn on location to find places near you.';
         }
@@ -107,14 +116,13 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
     if (!mounted) return;
     setState(() {
       _poiLoading = true;
-      _nearbyPlaceLine = null;
       _statusMessage = 'Finding places near you…';
     });
 
     final result = await _poiRepository.findBestNearby(
       latitude: reading.latitude!,
       longitude: reading.longitude!,
-      interestTags: widget.interests,
+      interestTags: _currentInterests,
     );
 
     developer.log(
@@ -130,7 +138,6 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
       _selectedPoi = result.poi;
       _placeRecommendation =
           result.poi?.recommendationBlurb ?? _fallbackRecommendation;
-      _nearbyPlaceLine = _nearbyPlaceSubtitle(result);
       if (result.hasError) {
         _statusMessage = _friendlyError(result.errorMessage);
       }
@@ -154,7 +161,7 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
     final narration = await GroqPoiNarrator.narrate(
       apiKey: apiKey,
       poi: poi,
-      userInterests: widget.interests,
+      userInterests: _currentInterests,
       fallback: poi.recommendationBlurb,
     );
 
@@ -162,19 +169,6 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
     setState(() {
       _placeRecommendation = narration.script;
     });
-  }
-
-  String? _nearbyPlaceSubtitle(PoiQueryResult result) {
-    final poi = result.poi;
-    if (poi == null) return null;
-
-    final distanceFt = poi.distanceMeters != null
-        ? (poi.distanceMeters! * 3.28084).round()
-        : null;
-    if (distanceFt != null) {
-      return '${poi.name} · ~$distanceFt ft away';
-    }
-    return poi.name;
   }
 
   String _friendlyError(String? raw) {
@@ -188,7 +182,7 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
     if (msg.contains('within') && msg.contains('mi')) {
       return 'Nothing nearby right now. Try again when you are closer.';
     }
-    return 'Something went wrong. Tap Try again on location.';
+    return 'Something went wrong. Try again from settings.';
   }
 
   Future<void> _ensureLocation() async {
@@ -220,6 +214,9 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
       await _speech.stop();
       await _speech.cancel();
     }());
+    _chatScrollController.dispose();
+    _textInputController.dispose();
+    _textInputFocus.dispose();
     super.dispose();
   }
 
@@ -243,7 +240,8 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
       if (!mounted) return;
       setState(() {
         _voiceUnsupported = true;
-        _statusMessage = 'Voice playback and capture need iOS or Android (not web).';
+        _statusMessage = 'Voice needs iOS or Android. Use keyboard mode here.';
+        _inputMode = _InputMode.keyboard;
       });
       return;
     }
@@ -282,7 +280,8 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
       if (!ok) {
         setState(() {
           _voiceUnsupported = true;
-          _statusMessage = 'Speech recognition is not available. Check mic permissions in Settings.';
+          _statusMessage = 'Mic unavailable. Use keyboard mode to chat.';
+          _inputMode = _InputMode.keyboard;
         });
         return;
       }
@@ -291,25 +290,24 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
       final groqKey = groqApiKeyFromEnvironment();
       setState(() {
         _voiceReady = true;
-        _voiceEngineLabel = groqKey.isNotEmpty
-            ? 'Voice: Orbit (Groq) ready'
-            : 'Voice: phone only — GROQ_API_KEY not loaded';
         _statusMessage = groqKey.isNotEmpty
-            ? 'Starting…'
-            : 'Starting with phone voice — add GROQ_API_KEY to app/.env and rebuild.';
+            ? 'Tap the mic to start, or switch to keyboard.'
+            : 'Add GROQ_API_KEY for full voice. Phone voice is on.';
       });
       if (groqKey.isEmpty) {
         showOrbitSnack(
-          'Orbit voice off: GROQ_API_KEY missing. Use app/.env and run flutter run from app/.',
+          'Orbit voice fallback active: add GROQ_API_KEY to app/.env.',
         );
       }
+      // Auto-greet on first load via voice mode (default).
       await _runSpeakThenListen();
     } catch (e, st) {
       developer.log('$e', name: 'Orbit.voice_boot', stackTrace: st);
       if (!mounted) return;
       setState(() {
         _voiceUnsupported = true;
-        _statusMessage = 'Voice setup failed. Try again from the previous screen.';
+        _statusMessage = 'Voice setup failed. Use keyboard mode to chat.';
+        _inputMode = _InputMode.keyboard;
       });
     }
   }
@@ -319,8 +317,7 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
     if (status == 'listening') {
       setState(() {
         _isListening = true;
-        _statusMessage =
-            'Listening — pause when done, or tap AirPods pause to end.';
+        _statusMessage = 'Listening — pause when you are done.';
       });
       return;
     }
@@ -332,12 +329,11 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
         final fallback = _liveTranscript?.trim() ?? '';
         if (fallback.isNotEmpty) {
           _heardFinalThisSession = true;
-          unawaited(_handleVoiceReply(fallback));
+          unawaited(_handleUserReply(fallback, source: _ReplySource.voice));
         } else if (!_isSpeaking && !_followUpLoading) {
           setState(() {
             _sessionBusy = false;
-            _statusMessage =
-                'Did not catch that. Keep talking after Orbit speaks.';
+            _statusMessage = 'Did not catch that. Tap the mic to retry.';
           });
         }
       } else if (!_conversationActive && !_sessionBusy) {
@@ -365,18 +361,25 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
       );
       _followUpLoading = false;
       _isSpeaking = true;
-      _statusMessage =
-          'Orbit is speaking… (AirPods pause ends conversation)';
+      _statusMessage = 'Orbit is speaking…';
     });
+    _scrollChatToBottom();
 
     final spoke = await _speakScript(_placeRecommendation);
     if (!spoke) return;
-
     if (!mounted) return;
-    await _startListening();
+
+    if (_inputMode == _InputMode.voice) {
+      await _startListening();
+    } else {
+      setState(() {
+        _isSpeaking = false;
+        _sessionBusy = false;
+        _statusMessage = 'Type a follow-up to keep the conversation going.';
+      });
+    }
   }
 
-  /// Listens until you pause briefly (~3s), then sends your words to Orbit.
   String _shortTtsError(Object error) {
     final text = error.toString();
     if (text.contains('429')) return 'rate limited';
@@ -389,6 +392,7 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
 
   Future<void> _startListening() async {
     if (!_voiceReady || _voiceUnsupported || !mounted) return;
+    if (_inputMode != _InputMode.voice) return;
 
     await HeadsetMediaBridge.instance.configureVoiceSession();
 
@@ -397,9 +401,9 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
       _heardFinalThisSession = false;
       _liveTranscript = null;
       _isListening = true;
+      _isSpeaking = false;
       _sessionBusy = true;
-      _statusMessage =
-          'Listening — pause when done, or tap AirPods pause to end.';
+      _statusMessage = 'Listening — pause when done.';
     });
 
     await _armHeadsetPauseControls();
@@ -416,7 +420,7 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
             final text = r.recognizedWords.trim();
             if (text.isEmpty || _heardFinalThisSession) return;
             _heardFinalThisSession = true;
-            unawaited(_handleVoiceReply(text));
+            unawaited(_handleUserReply(text, source: _ReplySource.voice));
           }
         },
         listenFor: const Duration(seconds: 90),
@@ -434,9 +438,19 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
         _conversationActive = false;
         _sessionBusy = false;
         _isListening = false;
-        _statusMessage = 'Could not start listening. Tap Listen again.';
+        _statusMessage = 'Could not start listening. Tap the mic again.';
       });
     }
+  }
+
+  Future<void> _stopListening() async {
+    await _speech.stop();
+    if (!mounted) return;
+    setState(() {
+      _isListening = false;
+      _sessionBusy = false;
+      _statusMessage = 'Stopped listening. Tap the mic to resume.';
+    });
   }
 
   Future<void> _endConversation() async {
@@ -454,24 +468,12 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
       _isSpeaking = false;
       _sessionBusy = false;
       _followUpLoading = false;
-      _statusMessage =
-          'Conversation ended. Tap Listen again to start over.';
+      _statusMessage = 'Conversation ended. Tap the mic to start again.';
     });
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Conversation ended.')),
-      );
-    }
-  }
-
-  void _setVoiceEngineLabel(String label) {
-    if (!mounted) return;
-    setState(() => _voiceEngineLabel = label);
   }
 
   void _notifyVoiceFallback(String reason) {
     final message = 'Orbit voice unavailable ($reason). Using phone voice.';
-    _setVoiceEngineLabel('Voice: phone (fallback — $reason)');
     showOrbitSnack(message);
     developer.log(message, name: 'Orbit.tts_route');
   }
@@ -481,7 +483,6 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
     await _tts.speak(spoken);
   }
 
-  /// Speaks [raw] via Groq Orpheus or on-device TTS. Returns false if playback failed.
   Future<bool> _speakScript(String raw) async {
     final spoken = _ttsPhrase(raw);
     await reloadGroqConfigIfNeeded();
@@ -497,7 +498,6 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
         return true;
       }
 
-      _setVoiceEngineLabel('Voice: Orbit (Groq)…');
       await HeadsetMediaBridge.instance.configurePlaybackSession();
       developer.log(
         'Using Groq Orpheus voice (${spoken.length} chars)',
@@ -509,15 +509,10 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
         voice: 'troy',
         onExternalPause: _onHeadsetPauseEndConversation,
       );
-      _setVoiceEngineLabel('Voice: Orbit (Groq)');
       return true;
     } catch (e, st) {
       developer.log('$e', name: 'Orbit.tts_speak', stackTrace: st);
       if (groqKey.isNotEmpty) {
-        developer.log(
-          'Groq voice failed, falling back to on-device TTS: $e',
-          name: 'Orbit.tts_route',
-        );
         try {
           await _speakWithDeviceVoice(spoken, _shortTtsError(e));
           return true;
@@ -529,25 +524,37 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
       setState(() {
         _sessionBusy = false;
         _isSpeaking = false;
-        _voiceEngineLabel = 'Voice: failed — check volume and network';
-        _statusMessage = groqKey.isNotEmpty
-            ? 'Could not play audio (Groq and on-device). Check network and volume.'
-            : 'Could not play audio. Check volume and try replay.';
+        _statusMessage = 'Could not play audio. Check network and volume.';
       });
       return false;
     }
   }
 
-  Future<void> _handleVoiceReply(String text) async {
-    await _speech.stop();
+  Future<void> _handleTextSend() async {
+    final text = _textInputController.text.trim();
+    if (text.isEmpty || _sendingText) return;
+    _textInputController.clear();
+    setState(() => _sendingText = true);
+    try {
+      await _handleUserReply(text, source: _ReplySource.text);
+    } finally {
+      if (mounted) setState(() => _sendingText = false);
+    }
+  }
+
+  Future<void> _handleUserReply(
+    String text, {
+    required _ReplySource source,
+  }) async {
+    if (source == _ReplySource.voice) {
+      await _speech.stop();
+    }
 
     final user = widget.userName?.trim();
     final prefix =
         user != null && user.isNotEmpty ? 'user=$user' : 'user=anonymous';
-
-    debugPrint('[$prefix] place_response (voice): $text');
     developer.log(
-      '[$prefix] place_response (voice): $text',
+      '[$prefix] place_response (${source.name}): $text',
       name: 'Orbit.place_response',
     );
 
@@ -556,9 +563,11 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
     setState(() {
       _sessionBusy = true;
       _followUpLoading = true;
+      _conversationActive = true;
       _conversationHistory.add(ConversationTurn(isUser: true, text: text));
       _statusMessage = 'Thinking about your question…';
     });
+    _scrollChatToBottom();
 
     final apiKey = groqApiKeyFromEnvironment();
     final narration = await GroqPoiNarrator.replyToFollowUp(
@@ -566,7 +575,7 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
       userTranscript: text,
       orbitSuggestion: _placeRecommendation,
       poi: _selectedPoi,
-      userInterests: widget.interests,
+      userInterests: _currentInterests,
       priorTurns: priorTurns,
     );
 
@@ -581,21 +590,27 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
       _conversationHistory.add(
         ConversationTurn(isUser: false, text: narration.script),
       );
-      _isSpeaking = true;
-      _statusMessage = 'Answering your question…';
+      _isSpeaking = source == _ReplySource.voice;
+      _statusMessage = source == _ReplySource.voice
+          ? 'Answering your question…'
+          : 'Orbit replied.';
     });
+    _scrollChatToBottom();
 
-    final spoke = await _speakScript(narration.script);
+    // Only speak aloud when the user is in voice mode; keyboard users
+    // generally don't want surprise audio playback.
+    var spoke = true;
+    if (source == _ReplySource.voice) {
+      spoke = await _speakScript(narration.script);
+    }
     if (!mounted) return;
 
-    if (!mounted) return;
-
-    if (_conversationActive) {
+    if (_inputMode == _InputMode.voice && _conversationActive) {
       setState(() {
         _isSpeaking = false;
         _statusMessage = spoke
             ? 'Orbit replied — listening when you are ready.'
-            : 'Answer is on screen — listening when you are ready.';
+            : 'Reply is on screen — tap the mic to keep going.';
       });
       await _startListening();
       return;
@@ -604,43 +619,81 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
     setState(() {
       _isSpeaking = false;
       _sessionBusy = false;
-      _statusMessage = spoke
-          ? 'Tap Listen again for another round.'
-          : 'Answer is on screen. Tap Listen again to retry voice.';
+      _statusMessage = source == _ReplySource.voice
+          ? 'Tap the mic again for another round.'
+          : 'Type another message to keep chatting.';
     });
-
-    if (mounted && spoke) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Orbit replied.')),
-      );
-    }
   }
 
-  Future<void> _openPreferences() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) {
+  void _scrollChatToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_chatScrollController.hasClients) return;
+      _chatScrollController.animateTo(
+        _chatScrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 240),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
+  Future<void> _openSettings() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Sign in to manage preferences.'),
-        ),
+        const SnackBar(content: Text('Sign in to manage preferences.')),
       );
       return;
     }
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => PreferencesScreen(
-          userId: uid,
+          userId: user.uid,
           userName: widget.userName,
         ),
       ),
     );
+    // After returning from preferences, re-pull saved tags and refresh
+    // the POI pick if anything actually changed.
+    if (!mounted) return;
+    try {
+      final latest = await _preferencesService.load(user.uid);
+      final updated = latest?.interests.toList() ?? const <String>[];
+      final changed = updated.length != _currentInterests.length ||
+          !updated.toSet().containsAll(_currentInterests);
+      if (changed) {
+        setState(() => _currentInterests = updated);
+        await _fetchNearbyPoi();
+      }
+    } catch (_) {
+      // Best-effort refresh; ignore failures here since prefs already saved.
+    }
+  }
+
+  void _setInputMode(_InputMode mode) {
+    if (mode == _inputMode) return;
+    setState(() => _inputMode = mode);
+    if (mode == _InputMode.keyboard) {
+      unawaited(_speech.stop());
+      // Cancel a pending auto-listen if Orbit just finished speaking.
+      if (_isListening) {
+        unawaited(_stopListening());
+      }
+    } else if (mode == _InputMode.voice && _conversationActive && !_isSpeaking) {
+      unawaited(_startListening());
+    }
+  }
+
+  String _firstName() {
+    final raw = widget.userName?.trim() ?? '';
+    if (raw.isEmpty) return '';
+    return raw.split(RegExp(r'[\s@]')).first;
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final greeting = widget.userName?.trim();
-    final hasGreeting = greeting != null && greeting.isNotEmpty;
+    final first = _firstName();
+    final greeting = first.isEmpty ? "Let's explore!" : "Hi $first, let's explore!";
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -651,264 +704,76 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
           ),
         ),
         child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 460),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+          child: Column(
+            children: [
+              _HomeHeader(
+                greeting: greeting,
+                onOpenSettings: _openSettings,
+              ),
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final third = constraints.maxHeight / 3;
+                    return Column(
                       children: [
-                        Expanded(
-                          child: hasGreeting
-                              ? Text(
-                                  'Hi, $greeting',
-                                  style: theme.textTheme.titleMedium?.copyWith(
-                                    color: Colors.white.withValues(alpha: 0.85),
-                                  ),
-                                )
-                              : const SizedBox.shrink(),
+                        SizedBox(
+                          height: third,
+                          child: _HomeMapSection(
+                            loading: _locationLoading,
+                            reading: _locationReading,
+                            onRetry: () {
+                              setState(() {
+                                _locationLoading = true;
+                                _poiLoading = true;
+                              });
+                              _loadLocationAndNearbyPoi();
+                            },
+                          ),
                         ),
-                        IconButton(
-                          tooltip: 'Preferences',
-                          onPressed: _openPreferences,
-                          icon: Icon(
-                            Icons.settings_rounded,
-                            color: Colors.white.withValues(alpha: 0.85),
+                        SizedBox(
+                          height: third,
+                          child: _ChatSection(
+                            history: _conversationHistory,
+                            scrollController: _chatScrollController,
+                            isThinking: _followUpLoading,
+                            poiLoading: _poiLoading &&
+                                _conversationHistory.isEmpty,
+                          ),
+                        ),
+                        SizedBox(
+                          height: third,
+                          child: _InputSection(
+                            mode: _inputMode,
+                            onModeChanged: _setInputMode,
+                            voiceReady: _voiceReady && !_voiceUnsupported,
+                            isListening: _isListening,
+                            isSpeaking: _isSpeaking,
+                            sessionBusy: _sessionBusy,
+                            statusMessage: _statusMessage,
+                            liveTranscript: _liveTranscript,
+                            onMicPressed: () {
+                              if (_isListening) {
+                                _stopListening();
+                              } else if (_isSpeaking || _sessionBusy) {
+                                // Treat as cancel: end and start fresh.
+                                _endConversation();
+                              } else {
+                                _conversationActive = true;
+                                _startListening();
+                              }
+                            },
+                            textController: _textInputController,
+                            textFocus: _textInputFocus,
+                            sending: _sendingText || _followUpLoading,
+                            onSend: _handleTextSend,
                           ),
                         ),
                       ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Nearby',
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    if (_conversationHistory.isEmpty)
-                      Text(
-                        _placeRecommendation,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          color: Colors.white.withValues(alpha: 0.92),
-                          height: 1.35,
-                        ),
-                      ),
-                    if (_nearbyPlaceLine != null) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        _nearbyPlaceLine!,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: Colors.white.withValues(alpha: 0.55),
-                          height: 1.35,
-                        ),
-                      ),
-                    ],
-                    if (_poiLoading) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        'Finding places near you…',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: Colors.white.withValues(alpha: 0.55),
-                          height: 1.35,
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 20),
-                    _LocationPanel(
-                      loading: _locationLoading,
-                      reading: _locationReading,
-                      onRetry: () {
-                        setState(() {
-                          _locationLoading = true;
-                          _poiLoading = true;
-                        });
-                        _loadLocationAndNearbyPoi();
-                      },
-                    ),
-                    if (_conversationHistory.isNotEmpty || _followUpLoading) ...[
-                      const SizedBox(height: 20),
-                      Text(
-                        'Conversation',
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          color: theme.colorScheme.primary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      ..._conversationHistory.map(
-                        (turn) => Padding(
-                          padding: const EdgeInsets.only(bottom: 14),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                turn.isUser ? 'You' : 'Orbit',
-                                style: theme.textTheme.labelMedium?.copyWith(
-                                  color: turn.isUser
-                                      ? Colors.white.withValues(alpha: 0.55)
-                                      : theme.colorScheme.primary,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                turn.text,
-                                style: (turn.isUser
-                                        ? theme.textTheme.bodyMedium
-                                        : theme.textTheme.titleMedium)
-                                    ?.copyWith(
-                                  color: Colors.white.withValues(
-                                    alpha: turn.isUser ? 0.85 : 0.92,
-                                  ),
-                                  fontStyle: turn.isUser
-                                      ? FontStyle.italic
-                                      : FontStyle.normal,
-                                  height: 1.35,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      if (_followUpLoading) ...[
-                        Text(
-                          'Orbit',
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            color: theme.colorScheme.primary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Researching an answer…',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: Colors.white.withValues(alpha: 0.65),
-                            height: 1.35,
-                          ),
-                        ),
-                      ],
-                      if (_conversationHistory.any((t) => t.isUser)) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          'Doesn\'t look right? Tap Listen again and ask once more.',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: Colors.white.withValues(alpha: 0.45),
-                            height: 1.3,
-                          ),
-                        ),
-                      ],
-                    ],
-                    const SizedBox(height: 16),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(18),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.06),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.12),
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                _isSpeaking
-                                    ? Icons.headphones_rounded
-                                    : _isListening
-                                        ? Icons.mic_rounded
-                                        : Icons.graphic_eq_rounded,
-                                color: theme.colorScheme.primary,
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  _statusMessage,
-                                  style: theme.textTheme.bodyLarge?.copyWith(
-                                    color: Colors.white.withValues(alpha: 0.9),
-                                    height: 1.35,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _voiceEngineLabel,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: _voiceEngineLabel.contains('Orbit (Groq)')
-                                  ? theme.colorScheme.primary
-                                  : Colors.orange.shade300,
-                              fontWeight: FontWeight.w600,
-                              height: 1.3,
-                            ),
-                          ),
-                          if (_liveTranscript != null &&
-                              _liveTranscript!.trim().isNotEmpty) ...[
-                            const SizedBox(height: 12),
-                            Text(
-                              'Hearing you',
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: Colors.white.withValues(alpha: 0.55),
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              _liveTranscript!,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: Colors.white.withValues(alpha: 0.85),
-                                fontStyle: FontStyle.italic,
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                    if (_conversationActive &&
-                        (_isListening || _isSpeaking || _followUpLoading)) ...[
-                      const SizedBox(height: 10),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          onPressed:
-                              _followUpLoading ? null : _endConversation,
-                          child: const Text('End conversation'),
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: (!_voiceReady ||
-                                _voiceUnsupported ||
-                                _sessionBusy ||
-                                _followUpLoading ||
-                                _isSpeaking)
-                            ? null
-                            : () {
-                                _conversationActive = false;
-                                _runSpeakThenListen();
-                              },
-                        icon: const Icon(Icons.replay_rounded),
-                        label: Text(
-                          _conversationActive
-                              ? 'Start over'
-                              : 'Listen again',
-                        ),
-                      ),
-                    ),
-                  ],
+                    );
+                  },
                 ),
               ),
-            ),
+            ],
           ),
         ),
       ),
@@ -916,75 +781,47 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
   }
 }
 
-/// Inline interactive map centered on the user's current position.
-///
-/// Uses OpenStreetMap tiles (no API key, free for low volume; we set
-/// `userAgentPackageName` so OSM can identify the client per their policy).
-/// Pan + pinch-zoom are enabled via `InteractiveFlag.all`. Sprint 2 will
-/// add a `MarkerLayer` for nearby POIs at the spot marked below.
-class _MapPreview extends StatelessWidget {
-  const _MapPreview({required this.latitude, required this.longitude});
+enum _ReplySource { voice, text }
 
-  final double latitude;
-  final double longitude;
+class _HomeHeader extends StatelessWidget {
+  const _HomeHeader({required this.greeting, required this.onOpenSettings});
+
+  final String greeting;
+  final VoidCallback onOpenSettings;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final center = LatLng(latitude, longitude);
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(14),
-      child: SizedBox(
-        height: 240,
-        child: FlutterMap(
-          options: MapOptions(
-            initialCenter: center,
-            initialZoom: 15,
-            interactionOptions: const InteractionOptions(
-              flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 12, 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              greeting,
+              style: theme.textTheme.titleLarge?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
-          children: [
-            TileLayer(
-              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-              userAgentPackageName: 'edu.scu.orbit',
-              tileProvider: NetworkTileProvider(),
-            ),
-            // TODO(sprint-2): replace with a MarkerLayer fed by nearby POIs.
-            MarkerLayer(
-              markers: [
-                Marker(
-                  point: center,
-                  width: 22,
-                  height: 22,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primary,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2.5),
-                      boxShadow: [
-                        BoxShadow(
-                          color: theme.colorScheme.primary.withValues(
-                            alpha: 0.45,
-                          ),
-                          blurRadius: 10,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+          IconButton(
+            tooltip: 'Settings',
+            onPressed: onOpenSettings,
+            icon: const Icon(Icons.settings_rounded),
+            color: Colors.white.withValues(alpha: 0.9),
+            iconSize: 26,
+          ),
+        ],
       ),
     );
   }
 }
 
-class _LocationPanel extends StatelessWidget {
-  const _LocationPanel({
+class _HomeMapSection extends StatelessWidget {
+  const _HomeMapSection({
     required this.loading,
     required this.reading,
     required this.onRetry,
@@ -997,132 +834,763 @@ class _LocationPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final (icon, headline, detail) = _renderContent();
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.06),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      child: ClipRRect(
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, color: theme.colorScheme.primary),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  headline,
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    color: Colors.white.withValues(alpha: 0.9),
-                    height: 1.35,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          if (_grantedCoords() case final coords?) ...[
-            const SizedBox(height: 12),
-            _MapPreview(latitude: coords.$1, longitude: coords.$2),
-          ],
-          if (detail != null) ...[
-            const SizedBox(height: 8),
-            Text(
-              detail,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: Colors.white.withValues(alpha: 0.65),
-                height: 1.35,
-              ),
-            ),
-          ],
-          if (_shouldShowRetry()) ...[
-            const SizedBox(height: 12),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton.icon(
-                onPressed: onRetry,
-                icon: const Icon(Icons.refresh_rounded, size: 18),
-                label: const Text('Try again'),
-              ),
-            ),
-          ],
-        ],
+        child: _buildMapBody(theme),
       ),
     );
   }
 
-  bool _shouldShowRetry() {
-    if (loading) return false;
-    final outcome = reading?.outcome;
-    return outcome == LocationOutcome.denied ||
-        outcome == LocationOutcome.servicesDisabled ||
-        outcome == LocationOutcome.error;
-  }
-
-  /// Returns (lat, lng) when the reading is granted with coordinates;
-  /// `null` otherwise. Used to decide whether the map preview should render.
-  (double, double)? _grantedCoords() {
-    final r = reading;
-    if (r == null || !r.isGranted) return null;
-    final lat = r.latitude;
-    final lng = r.longitude;
-    if (lat == null || lng == null) return null;
-    return (lat, lng);
-  }
-
-  (IconData, String, String?) _renderContent() {
+  Widget _buildMapBody(ThemeData theme) {
     if (loading || reading == null) {
-      return (
-        Icons.my_location_rounded,
-        'Checking your location…',
-        'Orbit uses your location to suggest places nearby.',
+      return _MapPlaceholder(
+        icon: Icons.my_location_rounded,
+        title: 'Finding your location…',
+        subtitle:
+            'Orbit uses your location to suggest places nearby.',
+        theme: theme,
       );
     }
 
     final r = reading!;
-    switch (r.outcome) {
-      case LocationOutcome.granted:
-        final lat = r.latitude;
-        final lng = r.longitude;
-        final accLine = r.accuracyMeters != null
-            ? ' (${r.accuracyMeters!.round()} m accuracy)'
-            : '';
-        final coordsDetail = lat != null && lng != null
-            ? '${lat.toStringAsFixed(5)}, ${lng.toStringAsFixed(5)}$accLine'
-            : 'Using your position to find nearby spots.';
-        return (
-          Icons.location_on_rounded,
-          'Location found',
-          coordsDetail,
-        );
-      case LocationOutcome.denied:
-        return (
+    if (r.isGranted && r.latitude != null && r.longitude != null) {
+      return _MapView(latitude: r.latitude!, longitude: r.longitude!);
+    }
+
+    final (icon, title, subtitle) = switch (r.outcome) {
+      LocationOutcome.denied => (
           Icons.location_off_rounded,
           'Location access denied',
-          'Orbit needs your location to find nearby places. Tap "Try again" to grant access.',
-        );
-      case LocationOutcome.deniedForever:
-        return (
+          'Orbit needs your location to find nearby places. Tap retry.',
+        ),
+      LocationOutcome.deniedForever => (
           Icons.location_disabled_rounded,
-          'Location permission turned off',
-          'Open Settings → Orbit → Location and switch to "While Using the App".',
-        );
-      case LocationOutcome.servicesDisabled:
-        return (
+          'Permission turned off',
+          'Open Settings → Orbit → Location to enable it.',
+        ),
+      LocationOutcome.servicesDisabled => (
           Icons.gps_off_rounded,
           'Device location is off',
-          'Turn on Location Services in your phone\'s Settings, then tap "Try again".',
-        );
-      case LocationOutcome.error:
-        return (
+          'Turn on Location Services then tap retry.',
+        ),
+      LocationOutcome.error => (
           Icons.error_outline_rounded,
           'Could not read your location',
-          r.errorMessage ?? 'Something went wrong. Tap "Try again".',
-        );
+          r.errorMessage ?? 'Tap retry to try again.',
+        ),
+      LocationOutcome.granted => (
+          Icons.my_location_rounded,
+          'Locating…',
+          'One moment.',
+        ),
+    };
+
+    return _MapPlaceholder(
+      icon: icon,
+      title: title,
+      subtitle: subtitle,
+      theme: theme,
+      onRetry: onRetry,
+    );
+  }
+}
+
+class _MapView extends StatelessWidget {
+  const _MapView({required this.latitude, required this.longitude});
+
+  final double latitude;
+  final double longitude;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final center = LatLng(latitude, longitude);
+    return FlutterMap(
+      options: MapOptions(
+        initialCenter: center,
+        initialZoom: 15,
+        interactionOptions: const InteractionOptions(
+          flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+        ),
+      ),
+      children: [
+        TileLayer(
+          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+          userAgentPackageName: 'edu.scu.orbit',
+          tileProvider: NetworkTileProvider(),
+        ),
+        MarkerLayer(
+          markers: [
+            Marker(
+              point: center,
+              width: 26,
+              height: 26,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 3),
+                  boxShadow: [
+                    BoxShadow(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.5),
+                      blurRadius: 14,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _MapPlaceholder extends StatelessWidget {
+  const _MapPlaceholder({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.theme,
+    this.onRetry,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final ThemeData theme;
+  final VoidCallback? onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.06),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: theme.colorScheme.primary, size: 36),
+            const SizedBox(height: 10),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.titleSmall?.copyWith(
+                color: Colors.white.withValues(alpha: 0.9),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              subtitle,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: Colors.white.withValues(alpha: 0.6),
+                height: 1.3,
+              ),
+            ),
+            if (onRetry != null) ...[
+              const SizedBox(height: 10),
+              TextButton.icon(
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh_rounded, size: 18),
+                label: const Text('Try again'),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ChatSection extends StatelessWidget {
+  const _ChatSection({
+    required this.history,
+    required this.scrollController,
+    required this.isThinking,
+    required this.poiLoading,
+  });
+
+  final List<ConversationTurn> history;
+  final ScrollController scrollController;
+  final bool isThinking;
+  final bool poiLoading;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+        ),
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+        child: history.isEmpty && !isThinking
+            ? _EmptyChatState(theme: theme, loading: poiLoading)
+            : ListView.builder(
+                controller: scrollController,
+                physics: const BouncingScrollPhysics(),
+                padding: EdgeInsets.zero,
+                itemCount: history.length + (isThinking ? 1 : 0),
+                itemBuilder: (context, index) {
+                  if (index == history.length && isThinking) {
+                    return const _ThinkingBubble();
+                  }
+                  return _ChatBubble(turn: history[index]);
+                },
+              ),
+      ),
+    );
+  }
+}
+
+class _EmptyChatState extends StatelessWidget {
+  const _EmptyChatState({required this.theme, required this.loading});
+
+  final ThemeData theme;
+  final bool loading;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            loading ? Icons.travel_explore_rounded : Icons.chat_bubble_outline,
+            color: theme.colorScheme.primary,
+            size: 28,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            loading ? 'Finding places near you…' : 'Say hi or type a question.',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: Colors.white.withValues(alpha: 0.7),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ChatBubble extends StatelessWidget {
+  const _ChatBubble({required this.turn});
+
+  final ConversationTurn turn;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isUser = turn.isUser;
+    final bg = isUser
+        ? theme.colorScheme.primary.withValues(alpha: 0.85)
+        : Colors.white.withValues(alpha: 0.08);
+    final fg = Colors.white.withValues(alpha: isUser ? 0.96 : 0.92);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment:
+            isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        children: [
+          Flexible(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 320),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: bg,
+                  borderRadius: BorderRadius.only(
+                    topLeft: const Radius.circular(16),
+                    topRight: const Radius.circular(16),
+                    bottomLeft: Radius.circular(isUser ? 16 : 4),
+                    bottomRight: Radius.circular(isUser ? 4 : 16),
+                  ),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.08),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isUser ? 'You' : 'Orbit',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: Colors.white.withValues(alpha: 0.6),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      turn.text,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: fg,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ThinkingBubble extends StatelessWidget {
+  const _ThinkingBubble();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  height: 14,
+                  width: 14,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation(
+                      theme.colorScheme.primary,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  'Orbit is thinking…',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.7),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InputSection extends StatelessWidget {
+  const _InputSection({
+    required this.mode,
+    required this.onModeChanged,
+    required this.voiceReady,
+    required this.isListening,
+    required this.isSpeaking,
+    required this.sessionBusy,
+    required this.statusMessage,
+    required this.liveTranscript,
+    required this.onMicPressed,
+    required this.textController,
+    required this.textFocus,
+    required this.sending,
+    required this.onSend,
+  });
+
+  final _InputMode mode;
+  final ValueChanged<_InputMode> onModeChanged;
+  final bool voiceReady;
+  final bool isListening;
+  final bool isSpeaking;
+  final bool sessionBusy;
+  final String statusMessage;
+  final String? liveTranscript;
+  final VoidCallback onMicPressed;
+  final TextEditingController textController;
+  final FocusNode textFocus;
+  final bool sending;
+  final VoidCallback onSend;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+        ),
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+        child: Column(
+          children: [
+            _ModeToggle(mode: mode, onChanged: onModeChanged),
+            const SizedBox(height: 8),
+            Expanded(
+              child: mode == _InputMode.voice
+                  ? _VoiceInputBody(
+                      voiceReady: voiceReady,
+                      isListening: isListening,
+                      isSpeaking: isSpeaking,
+                      sessionBusy: sessionBusy,
+                      statusMessage: statusMessage,
+                      liveTranscript: liveTranscript,
+                      onMicPressed: onMicPressed,
+                      theme: theme,
+                    )
+                  : _KeyboardInputBody(
+                      controller: textController,
+                      focusNode: textFocus,
+                      sending: sending,
+                      onSend: onSend,
+                      statusMessage: statusMessage,
+                      theme: theme,
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ModeToggle extends StatelessWidget {
+  const _ModeToggle({required this.mode, required this.onChanged});
+
+  final _InputMode mode;
+  final ValueChanged<_InputMode> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    Widget pill(_InputMode value, IconData icon, String label) {
+      final selected = mode == value;
+      return Expanded(
+        child: GestureDetector(
+          onTap: () => onChanged(value),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            decoration: BoxDecoration(
+              color: selected
+                  ? theme.colorScheme.primary.withValues(alpha: 0.22)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: selected
+                    ? theme.colorScheme.primary.withValues(alpha: 0.7)
+                    : Colors.white.withValues(alpha: 0.12),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  icon,
+                  size: 16,
+                  color: selected
+                      ? theme.colorScheme.primary
+                      : Colors.white.withValues(alpha: 0.6),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: selected
+                        ? Colors.white
+                        : Colors.white.withValues(alpha: 0.6),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
     }
+
+    return Row(
+      children: [
+        pill(_InputMode.voice, Icons.mic_rounded, 'Voice'),
+        const SizedBox(width: 8),
+        pill(_InputMode.keyboard, Icons.keyboard_rounded, 'Keyboard'),
+      ],
+    );
+  }
+}
+
+class _VoiceInputBody extends StatelessWidget {
+  const _VoiceInputBody({
+    required this.voiceReady,
+    required this.isListening,
+    required this.isSpeaking,
+    required this.sessionBusy,
+    required this.statusMessage,
+    required this.liveTranscript,
+    required this.onMicPressed,
+    required this.theme,
+  });
+
+  final bool voiceReady;
+  final bool isListening;
+  final bool isSpeaking;
+  final bool sessionBusy;
+  final String statusMessage;
+  final String? liveTranscript;
+  final VoidCallback onMicPressed;
+  final ThemeData theme;
+
+  @override
+  Widget build(BuildContext context) {
+    final transcript = liveTranscript?.trim() ?? '';
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Expanded(
+          child: Center(
+            child: _MicButton(
+              listening: isListening,
+              speaking: isSpeaking,
+              busy: sessionBusy && !isListening && !isSpeaking,
+              enabled: voiceReady,
+              onTap: voiceReady ? onMicPressed : null,
+              theme: theme,
+            ),
+          ),
+        ),
+        if (transcript.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            child: Text(
+              transcript,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: Colors.white.withValues(alpha: 0.78),
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ),
+        Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Text(
+            statusMessage,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: Colors.white.withValues(alpha: 0.6),
+              height: 1.3,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MicButton extends StatelessWidget {
+  const _MicButton({
+    required this.listening,
+    required this.speaking,
+    required this.busy,
+    required this.enabled,
+    required this.onTap,
+    required this.theme,
+  });
+
+  final bool listening;
+  final bool speaking;
+  final bool busy;
+  final bool enabled;
+  final VoidCallback? onTap;
+  final ThemeData theme;
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = theme.colorScheme.primary;
+    final color = !enabled
+        ? Colors.white.withValues(alpha: 0.18)
+        : listening
+            ? Colors.redAccent
+            : speaking
+                ? Colors.amber
+                : primary;
+    final icon = !enabled
+        ? Icons.mic_off_rounded
+        : listening
+            ? Icons.stop_rounded
+            : speaking
+                ? Icons.graphic_eq_rounded
+                : Icons.mic_rounded;
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        width: 96,
+        height: 96,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: enabled
+              ? LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [color.withValues(alpha: 0.95), color],
+                )
+              : null,
+          color: enabled ? null : Colors.white.withValues(alpha: 0.06),
+          boxShadow: enabled
+              ? [
+                  BoxShadow(
+                    color: color.withValues(alpha: listening ? 0.55 : 0.35),
+                    blurRadius: listening ? 28 : 18,
+                    spreadRadius: listening ? 2 : 0,
+                  ),
+                ]
+              : null,
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.16),
+            width: 2,
+          ),
+        ),
+        child: busy
+            ? const Center(
+                child: SizedBox(
+                  height: 28,
+                  width: 28,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 3,
+                    color: Colors.white,
+                  ),
+                ),
+              )
+            : Icon(icon, size: 40, color: Colors.white),
+      ),
+    );
+  }
+}
+
+class _KeyboardInputBody extends StatelessWidget {
+  const _KeyboardInputBody({
+    required this.controller,
+    required this.focusNode,
+    required this.sending,
+    required this.onSend,
+    required this.statusMessage,
+    required this.theme,
+  });
+
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final bool sending;
+  final VoidCallback onSend;
+  final String statusMessage;
+  final ThemeData theme;
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(14);
+    final borderColor = Colors.white.withValues(alpha: 0.12);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          child: TextField(
+            controller: controller,
+            focusNode: focusNode,
+            minLines: 1,
+            maxLines: 4,
+            textInputAction: TextInputAction.send,
+            onSubmitted: (_) => onSend(),
+            enabled: !sending,
+            style: const TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              hintText: 'Ask Orbit anything about places nearby…',
+              hintStyle: TextStyle(
+                color: Colors.white.withValues(alpha: 0.4),
+              ),
+              filled: true,
+              fillColor: Colors.black.withValues(alpha: 0.18),
+              border: OutlineInputBorder(
+                borderRadius: radius,
+                borderSide: BorderSide(color: borderColor),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: radius,
+                borderSide: BorderSide(color: borderColor),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: radius,
+                borderSide: BorderSide(
+                  color: theme.colorScheme.primary,
+                  width: 1.5,
+                ),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 12,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                statusMessage,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: Colors.white.withValues(alpha: 0.55),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            FilledButton.icon(
+              onPressed: sending ? null : onSend,
+              style: FilledButton.styleFrom(
+                backgroundColor: theme.colorScheme.primary,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              icon: sending
+                  ? const SizedBox(
+                      height: 14,
+                      width: 14,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.send_rounded, size: 18),
+              label: Text(sending ? 'Sending…' : 'Send'),
+            ),
+          ],
+        ),
+      ],
+    );
   }
 }
