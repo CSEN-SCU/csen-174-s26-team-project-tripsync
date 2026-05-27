@@ -67,11 +67,13 @@
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Orbit listens for your spoken reply after it reads a place suggestion.</string>
+	<string>Orbit listens for "Orbit" and your spoken questions so you can talk hands-free.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>Orbit turns what you say into text so we can log your reaction to suggestions.</string>
+	<string>Orbit turns what you say into text when you say "Orbit" to ask a question and "over" when you are done.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Orbit uses your location to suggest interesting places near you. Your location is only read while the app is open.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Orbit uses your location to suggest interesting places near you while the app is open. Location is not used in the background.</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

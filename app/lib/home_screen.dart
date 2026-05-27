@@ -9,6 +9,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:speech_to_text/speech_to_text.dart';
+import 'package:voice_interface/voice_interface.dart';
 
 import 'app_messenger.dart';
 import 'conversation_turn.dart';
@@ -22,8 +23,8 @@ import 'poi/poi_repository.dart';
 import 'orbit_groq_config.dart';
 import 'preferences/preferences_screen.dart';
 
-/// Home: speaks a place recommendation (headphones / system route), then listens
-/// and logs your spoken reply. Background auto-pings are planned for a later build.
+/// Home: speaks a place recommendation, then listens for wake word "Orbit"
+/// and end phrase "over" before sending follow-ups to Groq.
 class OrbitHomeScreen extends StatefulWidget {
   const OrbitHomeScreen({
     super.key,
@@ -41,6 +42,7 @@ class OrbitHomeScreen extends StatefulWidget {
 class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
   final FlutterTts _tts = FlutterTts();
   final SpeechToText _speech = SpeechToText();
+  final WakeWordSession _wakeSession = WakeWordSession();
   final LocationService _locationService = const LocationService();
   final PoiRepository _poiRepository = PoiRepository();
 
@@ -62,8 +64,8 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
   bool _heardFinalThisSession = false;
   bool _conversationActive = false;
 
-  /// How long you can pause mid-sentence before Orbit treats your turn as done.
-  static const Duration _pauseBeforeSend = Duration(seconds: 3);
+  /// STT pause before the OS ends a listen segment (wake loop restarts after).
+  static const Duration _wakeListenPause = Duration(seconds: 30);
 
   String _statusMessage = 'Getting ready…';
   /// Always updated when Orbit speaks so you can see which engine was used.
@@ -295,7 +297,7 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
             ? 'Voice: Orbit (Groq) ready'
             : 'Voice: phone only — GROQ_API_KEY not loaded';
         _statusMessage = groqKey.isNotEmpty
-            ? 'Starting…'
+            ? 'Starting — say "Orbit" to ask, then "over" when done.'
             : 'Starting with phone voice — add GROQ_API_KEY to app/.env and rebuild.';
       });
       if (groqKey.isEmpty) {
@@ -319,8 +321,9 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
     if (status == 'listening') {
       setState(() {
         _isListening = true;
-        _statusMessage =
-            'Listening — pause when done, or tap AirPods pause to end.';
+        _statusMessage = _wakeSession.awaitingCommand
+            ? 'Listening — say "over" when you are done.'
+            : 'Say "Orbit" to ask a question, then "over" when finished.';
       });
       return;
     }
@@ -328,17 +331,18 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
     if (status == 'notListening' || status == 'done') {
       if (!mounted) return;
       setState(() => _isListening = false);
-      if (!_heardFinalThisSession && _conversationActive) {
-        final fallback = _liveTranscript?.trim() ?? '';
-        if (fallback.isNotEmpty) {
-          _heardFinalThisSession = true;
-          unawaited(_handleVoiceReply(fallback));
-        } else if (!_isSpeaking && !_followUpLoading) {
+      if (_conversationActive &&
+          !_heardFinalThisSession &&
+          !_isSpeaking &&
+          !_followUpLoading) {
+        if (_wakeSession.awaitingCommand) {
           setState(() {
             _sessionBusy = false;
             _statusMessage =
-                'Did not catch that. Keep talking after Orbit speaks.';
+                'Say "over" when you are done, or say "Orbit" to start again.';
           });
+        } else {
+          unawaited(_startWakeWordListening());
         }
       } else if (!_conversationActive && !_sessionBusy) {
         setState(() => _sessionBusy = false);
@@ -373,10 +377,9 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
     if (!spoke) return;
 
     if (!mounted) return;
-    await _startListening();
+    await _startWakeWordListening();
   }
 
-  /// Listens until you pause briefly (~3s), then sends your words to Orbit.
   String _shortTtsError(Object error) {
     final text = error.toString();
     if (text.contains('429')) return 'rate limited';
@@ -387,11 +390,30 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
     return 'playback error';
   }
 
-  Future<void> _startListening() async {
+  void _onWakeWordSttResult(String recognizedWords) {
+    if (!mounted || _heardFinalThisSession) return;
+
+    final wakeJustHeard = _wakeSession.noteWakeIfNeeded(recognizedWords);
+    if (wakeJustHeard) {
+      setState(() {
+        _statusMessage = 'Listening — say "over" when you are done.';
+      });
+    }
+
+    final command = _wakeSession.ingest(recognizedWords);
+    if (command == null) return;
+
+    _heardFinalThisSession = true;
+    unawaited(_handleVoiceReply(command));
+  }
+
+  /// Waits for "Orbit", captures speech until "over", then sends to Groq.
+  Future<void> _startWakeWordListening() async {
     if (!_voiceReady || _voiceUnsupported || !mounted) return;
 
     await HeadsetMediaBridge.instance.configureVoiceSession();
 
+    _wakeSession.reset();
     setState(() {
       _conversationActive = true;
       _heardFinalThisSession = false;
@@ -399,7 +421,7 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
       _isListening = true;
       _sessionBusy = true;
       _statusMessage =
-          'Listening — pause when done, or tap AirPods pause to end.';
+          'Say "Orbit" to ask a question, then "over" when you are done.';
     });
 
     await _armHeadsetPauseControls();
@@ -412,15 +434,10 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
         onResult: (r) {
           if (!mounted) return;
           setState(() => _liveTranscript = r.recognizedWords);
-          if (r.finalResult) {
-            final text = r.recognizedWords.trim();
-            if (text.isEmpty || _heardFinalThisSession) return;
-            _heardFinalThisSession = true;
-            unawaited(_handleVoiceReply(text));
-          }
+          _onWakeWordSttResult(r.recognizedWords);
         },
-        listenFor: const Duration(seconds: 90),
-        pauseFor: _pauseBeforeSend,
+        listenFor: const Duration(minutes: 5),
+        pauseFor: _wakeListenPause,
         listenOptions: SpeechListenOptions(
           listenMode: ListenMode.dictation,
           partialResults: true,
@@ -443,6 +460,7 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
     if (!_conversationActive) return;
     _conversationActive = false;
     _heardFinalThisSession = true;
+    _wakeSession.reset();
     await HeadsetMediaBridge.instance.disarm();
     await _speech.stop();
     await _speech.cancel();
@@ -540,14 +558,31 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
 
   Future<void> _handleVoiceReply(String text) async {
     await _speech.stop();
+    _wakeSession.reset();
+
+    final cleaned = normalizeTranscriptForConversation(text);
+    if (cleaned.isEmpty) {
+      if (!mounted) return;
+      setState(() {
+        _sessionBusy = false;
+        _followUpLoading = false;
+        _heardFinalThisSession = false;
+        _statusMessage =
+            'Did not catch a question. Say "Orbit", ask, then "over".';
+      });
+      if (_conversationActive) {
+        await _startWakeWordListening();
+      }
+      return;
+    }
 
     final user = widget.userName?.trim();
     final prefix =
         user != null && user.isNotEmpty ? 'user=$user' : 'user=anonymous';
 
-    debugPrint('[$prefix] place_response (voice): $text');
+    debugPrint('[$prefix] place_response (voice): $cleaned');
     developer.log(
-      '[$prefix] place_response (voice): $text',
+      '[$prefix] place_response (voice): $cleaned',
       name: 'Orbit.place_response',
     );
 
@@ -556,14 +591,14 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
     setState(() {
       _sessionBusy = true;
       _followUpLoading = true;
-      _conversationHistory.add(ConversationTurn(isUser: true, text: text));
+      _conversationHistory.add(ConversationTurn(isUser: true, text: cleaned));
       _statusMessage = 'Thinking about your question…';
     });
 
     final apiKey = groqApiKeyFromEnvironment();
     final narration = await GroqPoiNarrator.replyToFollowUp(
       apiKey: apiKey,
-      userTranscript: text,
+      userTranscript: cleaned,
       orbitSuggestion: _placeRecommendation,
       poi: _selectedPoi,
       userInterests: widget.interests,
@@ -593,11 +628,12 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
     if (_conversationActive) {
       setState(() {
         _isSpeaking = false;
+        _heardFinalThisSession = false;
         _statusMessage = spoke
-            ? 'Orbit replied — listening when you are ready.'
-            : 'Answer is on screen — listening when you are ready.';
+            ? 'Orbit replied — say "Orbit" to ask again, then "over".'
+            : 'Answer is on screen — say "Orbit" to ask again, then "over".';
       });
-      await _startListening();
+      await _startWakeWordListening();
       return;
     }
 
@@ -795,7 +831,7 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
                       if (_conversationHistory.any((t) => t.isUser)) ...[
                         const SizedBox(height: 4),
                         Text(
-                          'Doesn\'t look right? Tap Listen again and ask once more.',
+                          'Doesn\'t look right? Say "Orbit", ask again, then "over".',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: Colors.white.withValues(alpha: 0.45),
                             height: 1.3,
