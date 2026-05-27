@@ -49,7 +49,7 @@ abstract final class LlmPromptGuardrails {
     _throwIfMatches(
       _offTopicPatterns,
       trimmed,
-      'TripSync only accepts travel- and destination-related messages. '
+      'Orbit only accepts travel- and destination-related messages. '
       'This looks like a non-travel technical or unsafe request; rephrase as a normal visitor question.',
     );
 

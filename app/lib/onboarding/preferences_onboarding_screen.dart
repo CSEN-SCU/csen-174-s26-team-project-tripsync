@@ -120,7 +120,7 @@ class _PreferencesOnboardingScreenState
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        'What should TripSync point out for you?',
+                        'What should Orbit point out for you?',
                         style: theme.textTheme.titleMedium?.copyWith(
                           color: Colors.white.withValues(alpha: 0.82),
                           height: 1.35,

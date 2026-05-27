@@ -7,8 +7,8 @@ import 'auth/auth_service.dart';
 import 'firebase_options.dart';
 import 'onboarding/firestore_preferences_service.dart';
 import 'onboarding/preferences_onboarding_screen.dart';
-import 'trip_sync_main_shell.dart';
-import 'tripsync_groq_config.dart';
+import 'orbit_main_shell.dart';
+import 'orbit_groq_config.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,18 +16,18 @@ Future<void> main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  runApp(const TripSyncApp());
+  runApp(const OrbitApp());
 }
 
-class TripSyncApp extends StatelessWidget {
-  const TripSyncApp({super.key});
+class OrbitApp extends StatelessWidget {
+  const OrbitApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     const seedColor = Color(0xFF4E5BF2);
     return MaterialApp(
-      scaffoldMessengerKey: tripSyncMessengerKey,
-      title: 'TripSync',
+      scaffoldMessengerKey: orbitMessengerKey,
+      title: 'Orbit',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: seedColor,
@@ -79,7 +79,10 @@ class _AuthGateState extends State<AuthGate> {
 
               final preferences = preferencesSnapshot.data;
               if (preferences != null && preferences.interests.isNotEmpty) {
-                return TripSyncMainShell(userName: userName);
+                return OrbitMainShell(
+                  userName: userName,
+                  interests: preferences.interests.toList(),
+                );
               }
 
               return PreferencesOnboardingScreen(
@@ -91,20 +94,20 @@ class _AuthGateState extends State<AuthGate> {
             },
           );
         }
-        return const TripSyncLandingScreen();
+        return const OrbitLandingScreen();
       },
     );
   }
 }
 
-class TripSyncLandingScreen extends StatefulWidget {
-  const TripSyncLandingScreen({super.key});
+class OrbitLandingScreen extends StatefulWidget {
+  const OrbitLandingScreen({super.key});
 
   @override
-  State<TripSyncLandingScreen> createState() => _TripSyncLandingScreenState();
+  State<OrbitLandingScreen> createState() => _OrbitLandingScreenState();
 }
 
-class _TripSyncLandingScreenState extends State<TripSyncLandingScreen> {
+class _OrbitLandingScreenState extends State<OrbitLandingScreen> {
   final TextEditingController _nameController = TextEditingController();
   final AuthService _authService = AuthService();
   bool _signingIn = false;
@@ -213,7 +216,7 @@ class _TripSyncLandingScreenState extends State<TripSyncLandingScreen> {
                       ),
                       const SizedBox(height: 24),
                       Text(
-                        'TripSync',
+                        'Orbit',
                         style: theme.textTheme.displaySmall?.copyWith(
                           fontWeight: FontWeight.w700,
                           letterSpacing: 0.2,
@@ -355,7 +358,7 @@ class _TripSyncLandingScreenState extends State<TripSyncLandingScreen> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Guest mode creates a private anonymous profile so TripSync can save your onboarding preferences. Sign in with Google to sync across devices.',
+                        'Guest mode creates a private anonymous profile so Orbit can save your onboarding preferences. Sign in with Google to sync across devices.',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: Colors.white.withValues(alpha: 0.58),
                           height: 1.3,

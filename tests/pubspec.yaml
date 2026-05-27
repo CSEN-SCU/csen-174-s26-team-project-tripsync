@@ -1,4 +1,4 @@
-name: tripsync_gp_tests
+name: orbit_gp_tests
 description: GP-owned Sprint 1 spec tests (Orbit LLM seam).
 publish_to: none
 

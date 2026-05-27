@@ -1,5 +1,5 @@
 /// At most [maxSendsPerMinute] LLM requests may **start** within each rolling [window]
-/// (shared by **Generate description** and **Ask TripSync**). Not a security boundary.
+/// (shared by **Generate description** and **Ask Orbit**). Not a security boundary.
 final class LlmChatRateLimiter {
   LlmChatRateLimiter({
     this.maxSendsPerMinute = 3,

@@ -4,16 +4,21 @@ import 'home_screen.dart';
 import 'llm_integration_screen.dart';
 
 /// Horizontal [PageView] plus bottom tabs: Voice (page 0) and LLM (page 1).
-class TripSyncMainShell extends StatefulWidget {
-  const TripSyncMainShell({super.key, this.userName});
+class OrbitMainShell extends StatefulWidget {
+  const OrbitMainShell({
+    super.key,
+    this.userName,
+    required this.interests,
+  });
 
   final String? userName;
+  final List<String> interests;
 
   @override
-  State<TripSyncMainShell> createState() => _TripSyncMainShellState();
+  State<OrbitMainShell> createState() => _OrbitMainShellState();
 }
 
-class _TripSyncMainShellState extends State<TripSyncMainShell> {
+class _OrbitMainShellState extends State<OrbitMainShell> {
   static const _tabBarColor = Color(0xFF0B1020);
   static const _pageAnim = Duration(milliseconds: 280);
 
@@ -45,7 +50,10 @@ class _TripSyncMainShellState extends State<TripSyncMainShell> {
             controller: _pageController,
             onPageChanged: (i) => setState(() => _pageIndex = i),
             children: [
-              TripSyncHomeScreen(userName: user),
+              OrbitHomeScreen(
+                userName: user,
+                interests: widget.interests,
+              ),
               LlmIntegrationScreen(userName: user),
             ],
           ),

@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-/// Web / non-io: Groq playback not used from [TripSyncHomeScreen] today.
+/// Web / non-io: Groq playback not used from [OrbitHomeScreen] today.
 Future<void> playGroqWavBytes(
   Uint8List _, {
   void Function()? onExternalPause,

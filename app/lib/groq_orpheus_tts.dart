@@ -78,7 +78,7 @@ class GroqOrpheusTts {
         final waitMs = 350 * (attempt + 1);
         developer.log(
           'Groq speech HTTP ${response.statusCode}, retry in ${waitMs}ms',
-          name: 'TripSync.groq_tts',
+          name: 'Orbit.groq_tts',
         );
         await Future<void>.delayed(Duration(milliseconds: waitMs));
         continue;
@@ -86,7 +86,7 @@ class GroqOrpheusTts {
 
       developer.log(
         'Groq speech HTTP ${response.statusCode}: $snippet',
-        name: 'TripSync.groq_tts',
+        name: 'Orbit.groq_tts',
       );
       throw GroqOrpheusTtsException(response.statusCode, snippet);
     }
@@ -255,7 +255,7 @@ class GroqOrpheusTts {
     } catch (e, st) {
       developer.log(
         'WAV merge failed, playing chunks sequentially: $e',
-        name: 'TripSync.groq_tts',
+        name: 'Orbit.groq_tts',
         stackTrace: st,
       );
     }
@@ -267,7 +267,7 @@ class GroqOrpheusTts {
         return;
       } catch (e, st) {
         lastPlayError = e;
-        developer.log('$e', name: 'TripSync.groq_tts', stackTrace: st);
+        developer.log('$e', name: 'Orbit.groq_tts', stackTrace: st);
       }
     }
     throw lastPlayError ??

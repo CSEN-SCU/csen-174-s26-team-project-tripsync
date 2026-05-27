@@ -19,34 +19,31 @@ import 'location_service.dart';
 import 'models/trip_poi.dart';
 import 'poi/poi_query_result.dart';
 import 'poi/poi_repository.dart';
-import 'tripsync_groq_config.dart';
+import 'orbit_groq_config.dart';
 
 /// Home: speaks a place recommendation (headphones / system route), then listens
 /// and logs your spoken reply. Background auto-pings are planned for a later build.
-class TripSyncHomeScreen extends StatefulWidget {
-  const TripSyncHomeScreen({super.key, this.userName});
+class OrbitHomeScreen extends StatefulWidget {
+  const OrbitHomeScreen({
+    super.key,
+    this.userName,
+    required this.interests,
+  });
 
   final String? userName;
+  final List<String> interests;
 
   @override
-  State<TripSyncHomeScreen> createState() => _TripSyncHomeScreenState();
+  State<OrbitHomeScreen> createState() => _OrbitHomeScreenState();
 }
 
-class _TripSyncHomeScreenState extends State<TripSyncHomeScreen> {
+class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
   final FlutterTts _tts = FlutterTts();
   final SpeechToText _speech = SpeechToText();
   final LocationService _locationService = const LocationService();
   final AuthService _authService = AuthService();
   bool _signingOut = false;
   final PoiRepository _poiRepository = PoiRepository();
-
-  /// Stand-in for onboarding interests until preferences are wired in.
-  static const List<String> _hardcodedInterestTags = [
-    'art',
-    'culture',
-    'views',
-    'nature',
-  ];
 
   static const String _fallbackRecommendation =
       'No matching places nearby yet. Try moving closer to a park or landmark, or check back after we add more spots.';
@@ -118,14 +115,14 @@ class _TripSyncHomeScreenState extends State<TripSyncHomeScreen> {
     final result = await _poiRepository.findBestNearby(
       latitude: reading.latitude!,
       longitude: reading.longitude!,
-      interestTags: _hardcodedInterestTags,
+      interestTags: widget.interests,
     );
 
     developer.log(
       'nearby=${result.nearbyCount} tagged=${result.taggedCount} '
       'tagFallback=${result.usedTagFallback} nearestFallback=${result.usedNearestFallback} '
       'poi=${result.poi?.id} err=${result.errorMessage}',
-      name: 'TripSync.poi_query',
+      name: 'Orbit.poi_query',
     );
 
     if (!mounted) return;
@@ -158,7 +155,7 @@ class _TripSyncHomeScreenState extends State<TripSyncHomeScreen> {
     final narration = await GroqPoiNarrator.narrate(
       apiKey: apiKey,
       poi: poi,
-      userInterests: _hardcodedInterestTags,
+      userInterests: widget.interests,
       fallback: poi.recommendationBlurb,
     );
 
@@ -276,7 +273,7 @@ class _TripSyncHomeScreenState extends State<TripSyncHomeScreen> {
         onError: (e) {
           developer.log(
             e.errorMsg,
-            name: 'TripSync.stt_error',
+            name: 'Orbit.stt_error',
             error: e.permanent,
           );
         },
@@ -303,13 +300,13 @@ class _TripSyncHomeScreenState extends State<TripSyncHomeScreen> {
             : 'Starting with phone voice — add GROQ_API_KEY to app/.env and rebuild.';
       });
       if (groqKey.isEmpty) {
-        showTripSyncSnack(
+        showOrbitSnack(
           'Orbit voice off: GROQ_API_KEY missing. Use app/.env and run flutter run from app/.',
         );
       }
       await _runSpeakThenListen();
     } catch (e, st) {
-      developer.log('$e', name: 'TripSync.voice_boot', stackTrace: st);
+      developer.log('$e', name: 'Orbit.voice_boot', stackTrace: st);
       if (!mounted) return;
       setState(() {
         _voiceUnsupported = true;
@@ -432,7 +429,7 @@ class _TripSyncHomeScreenState extends State<TripSyncHomeScreen> {
         ),
       );
     } catch (e, st) {
-      developer.log('$e', name: 'TripSync.listen', stackTrace: st);
+      developer.log('$e', name: 'Orbit.listen', stackTrace: st);
       if (!mounted) return;
       setState(() {
         _conversationActive = false;
@@ -476,8 +473,8 @@ class _TripSyncHomeScreenState extends State<TripSyncHomeScreen> {
   void _notifyVoiceFallback(String reason) {
     final message = 'Orbit voice unavailable ($reason). Using phone voice.';
     _setVoiceEngineLabel('Voice: phone (fallback — $reason)');
-    showTripSyncSnack(message);
-    developer.log(message, name: 'TripSync.tts_route');
+    showOrbitSnack(message);
+    developer.log(message, name: 'Orbit.tts_route');
   }
 
   Future<void> _speakWithDeviceVoice(String spoken, String reason) async {
@@ -495,7 +492,7 @@ class _TripSyncHomeScreenState extends State<TripSyncHomeScreen> {
       if (groqKey.isEmpty) {
         developer.log(
           'GROQ_API_KEY missing — using on-device TTS',
-          name: 'TripSync.tts_route',
+          name: 'Orbit.tts_route',
         );
         await _speakWithDeviceVoice(spoken, 'no API key in app');
         return true;
@@ -505,7 +502,7 @@ class _TripSyncHomeScreenState extends State<TripSyncHomeScreen> {
       await HeadsetMediaBridge.instance.configurePlaybackSession();
       developer.log(
         'Using Groq Orpheus voice (${spoken.length} chars)',
-        name: 'TripSync.tts_route',
+        name: 'Orbit.tts_route',
       );
       await GroqOrpheusTts.speakLongEnglish(
         apiKey: groqKey,
@@ -516,17 +513,17 @@ class _TripSyncHomeScreenState extends State<TripSyncHomeScreen> {
       _setVoiceEngineLabel('Voice: Orbit (Groq)');
       return true;
     } catch (e, st) {
-      developer.log('$e', name: 'TripSync.tts_speak', stackTrace: st);
+      developer.log('$e', name: 'Orbit.tts_speak', stackTrace: st);
       if (groqKey.isNotEmpty) {
         developer.log(
           'Groq voice failed, falling back to on-device TTS: $e',
-          name: 'TripSync.tts_route',
+          name: 'Orbit.tts_route',
         );
         try {
           await _speakWithDeviceVoice(spoken, _shortTtsError(e));
           return true;
         } catch (e2, st2) {
-          developer.log('$e2', name: 'TripSync.tts_fallback', stackTrace: st2);
+          developer.log('$e2', name: 'Orbit.tts_fallback', stackTrace: st2);
         }
       }
       if (!mounted) return false;
@@ -552,7 +549,7 @@ class _TripSyncHomeScreenState extends State<TripSyncHomeScreen> {
     debugPrint('[$prefix] place_response (voice): $text');
     developer.log(
       '[$prefix] place_response (voice): $text',
-      name: 'TripSync.place_response',
+      name: 'Orbit.place_response',
     );
 
     if (!mounted) return;
@@ -570,13 +567,13 @@ class _TripSyncHomeScreenState extends State<TripSyncHomeScreen> {
       userTranscript: text,
       orbitSuggestion: _placeRecommendation,
       poi: _selectedPoi,
-      userInterests: _hardcodedInterestTags,
+      userInterests: widget.interests,
       priorTurns: priorTurns,
     );
 
     developer.log(
       'follow_up search=${narration.usedWebSearch} sources=${narration.sourceUrls.length}',
-      name: 'TripSync.groq_follow_up',
+      name: 'Orbit.groq_follow_up',
     );
 
     if (!mounted) return;
@@ -1121,7 +1118,7 @@ class _LocationPanel extends StatelessWidget {
       return (
         Icons.my_location_rounded,
         'Checking your location…',
-        'TripSync uses your location to suggest places nearby.',
+        'Orbit uses your location to suggest places nearby.',
       );
     }
 
@@ -1145,13 +1142,13 @@ class _LocationPanel extends StatelessWidget {
         return (
           Icons.location_off_rounded,
           'Location access denied',
-          'TripSync needs your location to find nearby places. Tap "Try again" to grant access.',
+          'Orbit needs your location to find nearby places. Tap "Try again" to grant access.',
         );
       case LocationOutcome.deniedForever:
         return (
           Icons.location_disabled_rounded,
           'Location permission turned off',
-          'Open Settings → TripSync → Location and switch to "While Using the App".',
+          'Open Settings → Orbit → Location and switch to "While Using the App".',
         );
       case LocationOutcome.servicesDisabled:
         return (

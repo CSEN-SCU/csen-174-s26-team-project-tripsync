@@ -147,7 +147,7 @@ async function fetchPois() {
     headers: {
       "accept": "application/json",
       "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
-      "user-agent": "TripSync student project POI generator",
+      "user-agent": "Orbit student project POI generator",
     },
     body: `data=${encodeURIComponent(query)}`,
   });

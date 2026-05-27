@@ -244,7 +244,7 @@ flowchart LR
 | Firebase Auth (project `orbit-86c27`) | Identity | Yes | `app/lib/main.dart` → `Firebase.initializeApp`; `app/lib/auth/auth_service.dart` → `AuthService.signInWithGoogle` |
 | Cloud Firestore | Document DB | Yes | `auth_service.dart` → `_ensureUserProfile`; `firestore_preferences_service.dart` → load/save preferences; `poi_repository.dart` → geohash POI queries; `geo-poi-database/seed_pois.js` → admin POI seed |
 | Groq chat — `groq/compound-mini`, `llama-3.3-70b-versatile` | AI API (LLM + optional web search) | Yes | `app/lib/groq_poi_narrator.dart` → `GroqPoiNarrator.narrate`, `replyToFollowUp`; `LLM-Integration/lib/src/llm_client.dart` → dev tab only |
-| Groq Orpheus TTS (`canopylabs/orpheus-v1-english`) | AI API (TTS) | Yes | `app/lib/groq_orpheus_tts.dart` → `GroqOrpheusTts.synthesizeEnglishWav`; key in `tripsync_groq_config.dart` |
+| Groq Orpheus TTS (`canopylabs/orpheus-v1-english`) | AI API (TTS) | Yes | `app/lib/groq_orpheus_tts.dart` → `GroqOrpheusTts.synthesizeEnglishWav`; key in `orbit_groq_config.dart` |
 | Apple / Android speech recognition | On-device STT | Yes | `app/lib/home_screen.dart` → `speech_to_text` |
 | Native platform TTS | OS fallback when Groq unavailable | Yes | `app/lib/home_screen.dart` → `flutter_tts` |
 | OS GPS (`geolocator`) | Location (when-in-use, one-shot) | Yes | `app/lib/location_service.dart` → `Geolocator.getCurrentPosition` |
@@ -263,7 +263,7 @@ Fowler quadrants: **Deliberate / Inadvertent** × **Reversible / Irreversible**.
 | **Client-side Groq API key** (`GROQ_API_KEY` via `.env` asset / `--dart-define`) | Deliberate & Irreversible (at scale) | Accept for course prototype; before any public scale, add a thin backend-for-frontend proxy and rotate keys. |
 | **Monolithic `home_screen.dart`** (~1,170 lines: voice, POI, Groq, map, session UI) | Deliberate & Reversible | Extract Conversation Manager, Voice Interface, and POI selection into separate Dart modules matching W4 containers; keep behavior unchanged via widget tests. |
 | **Dual Groq stacks** (`GroqPoiNarrator` vs `LlmClient`) | Deliberate & Reversible | Route voice path through `llm_integration` (or shared HTTP layer) so guardrails, rate limits, and prompts live in one place. |
-| **Onboarding preferences not wired to home** — hardcoded `_hardcodedInterestTags` in `home_screen.dart` | Inadvertent & Reversible | Pass `UserPreferences` from `AuthGate` into `TripSyncHomeScreen`; use saved tags in `PoiRepository.findBestNearby` and Groq prompts. |
+| **Onboarding preferences not wired to home** — hardcoded `_hardcodedInterestTags` in `home_screen.dart` | Inadvertent & Reversible | Pass `UserPreferences` from `AuthGate` into `OrbitHomeScreen`; use saved tags in `PoiRepository.findBestNearby` and Groq prompts. |
 | **Sibling packages unwired** — `voice_interface` stub, `location_engine` without Firestore adapter | Inadvertent & Reversible | Implement `PoiDatabaseApi` adapter for Firestore; wire transcript normalizer; delete duplicate ranking in app once package path is green. |
 | **No maps deep links** — no `url_launcher` / Apple or Google Maps URIs | Inadvertent & Reversible | Add “Get directions” intent after user asks; hand off via platform deep link per W4 architecture. |
 | **Background geofencing not built** — no location stream, no `ACCESS_BACKGROUND_LOCATION` | Deliberate & Reversible (deferred) | After foreground loop is stable, add geofence plugin + “Always” permission narrative; connect to POI Ranker cooldown rules from W4 doc. |

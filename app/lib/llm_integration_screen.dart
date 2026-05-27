@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:llm_integration/llm_integration.dart';
 
-import 'tripsync_groq_config.dart';
+import 'orbit_groq_config.dart';
 
 /// Groq chat (text in / text-out): place descriptions + travel Q&A. Logic lives in `llm_integration`.
 class LlmIntegrationScreen extends StatefulWidget {
@@ -31,7 +31,7 @@ const _kSamplePlaceNotes =
 const _kTaskDescription = 'Write 2–3 short sentences: a welcoming visitor description for this place. '
     'No bullet list; plain sentences only.';
 
-const _kTaskQuestion = 'Answer clearly in 2–5 sentences as TripSync for a traveler (any destination: cities, parks, '
+const _kTaskQuestion = 'Answer clearly in 2–5 sentences as Orbit for a traveler (any destination: cities, parks, '
     'beaches, transit, day trips, logistics). If you are unsure, say what you do know and what to double-check.';
 
 class _LlmIntegrationScreenState extends State<LlmIntegrationScreen> {
@@ -200,7 +200,7 @@ class _LlmIntegrationScreenState extends State<LlmIntegrationScreen> {
                             child: OutlinedButton.icon(
                               onPressed: (!_hasKey || _busy) ? null : _runQuestion,
                               icon: const Icon(Icons.question_answer_rounded),
-                              label: Text(_busy ? 'Working…' : 'Ask TripSync'),
+                              label: Text(_busy ? 'Working…' : 'Ask Orbit'),
                             ),
                           ),
                           if (_answerResult != null)

@@ -84,12 +84,12 @@ Future<void> _loadDotEnv() async {
     final key = groqApiKeyFromEnvironment();
     developer.log(
       'Groq config: key ${key.isEmpty ? "missing" : "loaded (${key.length} chars)"}',
-      name: 'TripSync.groq_config',
+      name: 'Orbit.groq_config',
     );
   } catch (e, st) {
     developer.log(
       'Could not load .env asset: $e',
-      name: 'TripSync.groq_config',
+      name: 'Orbit.groq_config',
       stackTrace: st,
     );
   }

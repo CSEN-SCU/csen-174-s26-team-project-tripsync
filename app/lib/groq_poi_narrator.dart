@@ -32,7 +32,7 @@ class GroqPoiNarrator {
   static const String _fallbackModel = 'llama-3.3-70b-versatile';
 
   static const String _introSystemPrompt = '''
-You are Orbit, a warm audio travel guide for TripSync. The listener is on foot nearby.
+You are Orbit, a warm audio travel guide. The listener is on foot nearby.
 
 Write a spoken suggestion about the place: what it is, what makes it interesting, and why it fits their interests. Sound natural and concise, like a friend—not a brochure.
 
@@ -44,7 +44,7 @@ Rules:
 ''';
 
   static const String _followUpSystemPrompt = '''
-You are Orbit, a warm audio travel guide for TripSync. The listener is on foot near a place you told them about.
+You are Orbit, a warm audio travel guide. The listener is on foot near a place you told them about.
 
 Answer their latest follow-up using the conversation so far. Use web search when the question needs specific facts (artists, exhibits, hours, history, who/what/when).
 
@@ -135,7 +135,7 @@ Rules:
       developer.log(
         'Follow-up retrying with forced web search (deferral=${_isDeferralResponse(result.script)} '
         'usedSearch=${result.usedWebSearch})',
-        name: 'TripSync.groq_follow_up',
+        name: 'Orbit.groq_follow_up',
       );
       final retryMessages = _buildFollowUpMessages(
         poi: poi,
@@ -183,7 +183,7 @@ Rules:
       } catch (e, st) {
         developer.log(
           'Compound web search failed, falling back to LLM: $e',
-          name: 'TripSync.groq_chat',
+          name: 'Orbit.groq_chat',
           stackTrace: st,
         );
       }
@@ -200,7 +200,7 @@ Rules:
       );
       if (plain.script.isNotEmpty) return plain;
     } catch (e, st) {
-      developer.log('$e', name: 'TripSync.groq_chat', stackTrace: st);
+      developer.log('$e', name: 'Orbit.groq_chat', stackTrace: st);
     }
 
     return PoiNarration(script: fallback);

@@ -46,7 +46,7 @@ class HeadsetMediaBridge {
       );
       await session.setActive(true);
     } catch (e, st) {
-      developer.log('$e', name: 'TripSync.playback_session', stackTrace: st);
+      developer.log('$e', name: 'Orbit.playback_session', stackTrace: st);
     }
   }
 
@@ -72,7 +72,7 @@ class HeadsetMediaBridge {
       );
       await session.setActive(true);
     } catch (e, st) {
-      developer.log('$e', name: 'TripSync.headset_session', stackTrace: st);
+      developer.log('$e', name: 'Orbit.headset_session', stackTrace: st);
     }
   }
 
@@ -102,7 +102,7 @@ class HeadsetMediaBridge {
 
   void notifyExternalPause() {
     if (!_armed || _programmaticStop) return;
-    developer.log('Headset pause detected', name: 'TripSync.headset_pause');
+    developer.log('Headset pause detected', name: 'Orbit.headset_pause');
     _onPausePressed?.call();
   }
 
@@ -127,7 +127,7 @@ class HeadsetMediaBridge {
     if (_silentWavPath != null) return _silentWavPath!;
 
     final dir = await getTemporaryDirectory();
-    final path = '${dir.path}/tripsync_silent_loop.wav';
+    final path = '${dir.path}/orbit_silent_loop.wav';
     final file = File(path);
     if (!file.existsSync()) {
       await file.writeAsBytes(_buildSilentWav(), flush: true);
