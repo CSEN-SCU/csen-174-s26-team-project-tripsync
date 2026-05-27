@@ -1,6 +1,7 @@
 import 'dart:async' show unawaited;
 import 'dart:developer' as developer;
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, kIsWeb, TargetPlatform;
 import 'package:flutter/material.dart';
@@ -10,7 +11,6 @@ import 'package:latlong2/latlong.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
 import 'app_messenger.dart';
-import 'auth/auth_service.dart';
 import 'conversation_turn.dart';
 import 'groq_orpheus_tts.dart';
 import 'groq_poi_narrator.dart';
@@ -20,6 +20,7 @@ import 'models/trip_poi.dart';
 import 'poi/poi_query_result.dart';
 import 'poi/poi_repository.dart';
 import 'orbit_groq_config.dart';
+import 'preferences/preferences_screen.dart';
 
 /// Home: speaks a place recommendation (headphones / system route), then listens
 /// and logs your spoken reply. Background auto-pings are planned for a later build.
@@ -41,8 +42,6 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
   final FlutterTts _tts = FlutterTts();
   final SpeechToText _speech = SpeechToText();
   final LocationService _locationService = const LocationService();
-  final AuthService _authService = AuthService();
-  bool _signingOut = false;
   final PoiRepository _poiRepository = PoiRepository();
 
   static const String _fallbackRecommendation =
@@ -617,52 +616,24 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
     }
   }
 
-  Future<bool> _confirmSignOut() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Sign out of Orbit?'),
-        content: const Text(
-          'You will need to sign in again to see your preferences and recommendations.',
+  Future<void> _openPreferences() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Sign in to manage preferences.'),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Sign out'),
-          ),
-        ],
+      );
+      return;
+    }
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => PreferencesScreen(
+          userId: uid,
+          userName: widget.userName,
+        ),
       ),
     );
-    return confirmed ?? false;
-  }
-
-  Future<void> _handleSignOut() async {
-    if (_signingOut) return;
-    final confirmed = await _confirmSignOut();
-    if (!confirmed || !mounted) return;
-    setState(() => _signingOut = true);
-    final hadFirebaseUser = _authService.currentUser != null;
-    try {
-      await _authService.signOut();
-      if (!mounted) return;
-      // Guests reach this screen via Navigator.push from the landing screen,
-      // so pop back. Firebase users are at the AuthGate root and will rebuild
-      // to the landing screen automatically once authStateChanges emits null.
-      if (!hadFirebaseUser && Navigator.of(context).canPop()) {
-        Navigator.of(context).pop();
-      }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Sign-out failed: $e')),
-      );
-    } finally {
-      if (mounted) setState(() => _signingOut = false);
-    }
   }
 
   @override
@@ -700,22 +671,12 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
                                 )
                               : const SizedBox.shrink(),
                         ),
-                        TextButton.icon(
-                          onPressed: _signingOut ? null : _handleSignOut,
-                          icon: _signingOut
-                              ? const SizedBox(
-                                  height: 16,
-                                  width: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : const Icon(Icons.logout_rounded, size: 18),
-                          label: Text(_signingOut ? 'Signing out…' : 'Sign out'),
-                          style: TextButton.styleFrom(
-                            foregroundColor:
-                                Colors.white.withValues(alpha: 0.85),
+                        IconButton(
+                          tooltip: 'Preferences',
+                          onPressed: _openPreferences,
+                          icon: Icon(
+                            Icons.settings_rounded,
+                            color: Colors.white.withValues(alpha: 0.85),
                           ),
                         ),
                       ],
