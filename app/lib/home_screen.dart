@@ -9,6 +9,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:speech_to_text/speech_to_text.dart';
+import 'package:voice_interface/voice_interface.dart';
 
 import 'app_messenger.dart';
 import 'conversation_turn.dart';
@@ -26,7 +27,8 @@ import 'preferences/preferences_screen.dart';
 enum _InputMode { voice, keyboard }
 
 /// Home: three vertical thirds — map, chat, input. Input is either a
-/// large voice mic or a typed text box, toggled inline.
+/// large voice mic (with "Orbit"/"over" wake-word session for hands-free
+/// follow-ups) or a typed text box, toggled inline.
 class OrbitHomeScreen extends StatefulWidget {
   const OrbitHomeScreen({
     super.key,
@@ -44,6 +46,7 @@ class OrbitHomeScreen extends StatefulWidget {
 class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
   final FlutterTts _tts = FlutterTts();
   final SpeechToText _speech = SpeechToText();
+  final WakeWordSession _wakeSession = WakeWordSession();
   final LocationService _locationService = const LocationService();
   final PoiRepository _poiRepository = PoiRepository();
   final PreferencesService _preferencesService = FirestorePreferencesService();
@@ -73,8 +76,8 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
   bool _conversationActive = false;
   bool _sendingText = false;
 
-  /// How long you can pause mid-sentence before Orbit treats your turn as done.
-  static const Duration _pauseBeforeSend = Duration(seconds: 3);
+  /// STT pause before the OS ends a listen segment (wake loop restarts after).
+  static const Duration _wakeListenPause = Duration(seconds: 30);
 
   String _statusMessage = 'Getting ready…';
   String? _liveTranscript;
@@ -291,7 +294,7 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
       setState(() {
         _voiceReady = true;
         _statusMessage = groqKey.isNotEmpty
-            ? 'Tap the mic to start, or switch to keyboard.'
+            ? 'Say "Orbit" to ask, then "over". Or switch to keyboard.'
             : 'Add GROQ_API_KEY for full voice. Phone voice is on.';
       });
       if (groqKey.isEmpty) {
@@ -317,7 +320,9 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
     if (status == 'listening') {
       setState(() {
         _isListening = true;
-        _statusMessage = 'Listening — pause when you are done.';
+        _statusMessage = _wakeSession.awaitingCommand
+            ? 'Listening — say "over" when you are done.'
+            : 'Say "Orbit" to ask a question, then "over" when finished.';
       });
       return;
     }
@@ -325,16 +330,19 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
     if (status == 'notListening' || status == 'done') {
       if (!mounted) return;
       setState(() => _isListening = false);
-      if (!_heardFinalThisSession && _conversationActive) {
-        final fallback = _liveTranscript?.trim() ?? '';
-        if (fallback.isNotEmpty) {
-          _heardFinalThisSession = true;
-          unawaited(_handleUserReply(fallback, source: _ReplySource.voice));
-        } else if (!_isSpeaking && !_followUpLoading) {
+      if (_conversationActive &&
+          !_heardFinalThisSession &&
+          !_isSpeaking &&
+          !_followUpLoading &&
+          _inputMode == _InputMode.voice) {
+        if (_wakeSession.awaitingCommand) {
           setState(() {
             _sessionBusy = false;
-            _statusMessage = 'Did not catch that. Tap the mic to retry.';
+            _statusMessage =
+                'Say "over" when you are done, or say "Orbit" to start again.';
           });
+        } else {
+          unawaited(_startWakeWordListening());
         }
       } else if (!_conversationActive && !_sessionBusy) {
         setState(() => _sessionBusy = false);
@@ -370,7 +378,7 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
     if (!mounted) return;
 
     if (_inputMode == _InputMode.voice) {
-      await _startListening();
+      await _startWakeWordListening();
     } else {
       setState(() {
         _isSpeaking = false;
@@ -390,12 +398,31 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
     return 'playback error';
   }
 
-  Future<void> _startListening() async {
+  void _onWakeWordSttResult(String recognizedWords) {
+    if (!mounted || _heardFinalThisSession) return;
+
+    final wakeJustHeard = _wakeSession.noteWakeIfNeeded(recognizedWords);
+    if (wakeJustHeard) {
+      setState(() {
+        _statusMessage = 'Listening — say "over" when you are done.';
+      });
+    }
+
+    final command = _wakeSession.ingest(recognizedWords);
+    if (command == null) return;
+
+    _heardFinalThisSession = true;
+    unawaited(_handleUserReply(command, source: _ReplySource.voice));
+  }
+
+  /// Waits for "Orbit", captures speech until "over", then sends to Groq.
+  Future<void> _startWakeWordListening() async {
     if (!_voiceReady || _voiceUnsupported || !mounted) return;
     if (_inputMode != _InputMode.voice) return;
 
     await HeadsetMediaBridge.instance.configureVoiceSession();
 
+    _wakeSession.reset();
     setState(() {
       _conversationActive = true;
       _heardFinalThisSession = false;
@@ -403,7 +430,8 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
       _isListening = true;
       _isSpeaking = false;
       _sessionBusy = true;
-      _statusMessage = 'Listening — pause when done.';
+      _statusMessage =
+          'Say "Orbit" to ask a question, then "over" when you are done.';
     });
 
     await _armHeadsetPauseControls();
@@ -416,15 +444,10 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
         onResult: (r) {
           if (!mounted) return;
           setState(() => _liveTranscript = r.recognizedWords);
-          if (r.finalResult) {
-            final text = r.recognizedWords.trim();
-            if (text.isEmpty || _heardFinalThisSession) return;
-            _heardFinalThisSession = true;
-            unawaited(_handleUserReply(text, source: _ReplySource.voice));
-          }
+          _onWakeWordSttResult(r.recognizedWords);
         },
-        listenFor: const Duration(seconds: 90),
-        pauseFor: _pauseBeforeSend,
+        listenFor: const Duration(minutes: 5),
+        pauseFor: _wakeListenPause,
         listenOptions: SpeechListenOptions(
           listenMode: ListenMode.dictation,
           partialResults: true,
@@ -457,6 +480,7 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
     if (!_conversationActive) return;
     _conversationActive = false;
     _heardFinalThisSession = true;
+    _wakeSession.reset();
     await HeadsetMediaBridge.instance.disarm();
     await _speech.stop();
     await _speech.cancel();
@@ -546,15 +570,35 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
     String text, {
     required _ReplySource source,
   }) async {
+    String cleaned;
     if (source == _ReplySource.voice) {
       await _speech.stop();
+      _wakeSession.reset();
+      cleaned = normalizeTranscriptForConversation(text);
+      if (cleaned.isEmpty) {
+        if (!mounted) return;
+        setState(() {
+          _sessionBusy = false;
+          _followUpLoading = false;
+          _heardFinalThisSession = false;
+          _statusMessage =
+              'Did not catch a question. Say "Orbit", ask, then "over".';
+        });
+        if (_conversationActive) {
+          await _startWakeWordListening();
+        }
+        return;
+      }
+    } else {
+      cleaned = text.trim();
+      if (cleaned.isEmpty) return;
     }
 
     final user = widget.userName?.trim();
     final prefix =
         user != null && user.isNotEmpty ? 'user=$user' : 'user=anonymous';
     developer.log(
-      '[$prefix] place_response (${source.name}): $text',
+      '[$prefix] place_response (${source.name}): $cleaned',
       name: 'Orbit.place_response',
     );
 
@@ -564,7 +608,7 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
       _sessionBusy = true;
       _followUpLoading = true;
       _conversationActive = true;
-      _conversationHistory.add(ConversationTurn(isUser: true, text: text));
+      _conversationHistory.add(ConversationTurn(isUser: true, text: cleaned));
       _statusMessage = 'Thinking about your question…';
     });
     _scrollChatToBottom();
@@ -572,7 +616,7 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
     final apiKey = groqApiKeyFromEnvironment();
     final narration = await GroqPoiNarrator.replyToFollowUp(
       apiKey: apiKey,
-      userTranscript: text,
+      userTranscript: cleaned,
       orbitSuggestion: _placeRecommendation,
       poi: _selectedPoi,
       userInterests: _currentInterests,
@@ -608,11 +652,12 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
     if (_inputMode == _InputMode.voice && _conversationActive) {
       setState(() {
         _isSpeaking = false;
+        _heardFinalThisSession = false;
         _statusMessage = spoke
-            ? 'Orbit replied — listening when you are ready.'
-            : 'Reply is on screen — tap the mic to keep going.';
+            ? 'Orbit replied — say "Orbit" to ask again, then "over".'
+            : 'Answer is on screen — say "Orbit" to ask again, then "over".';
       });
-      await _startListening();
+      await _startWakeWordListening();
       return;
     }
 
@@ -679,7 +724,7 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
         unawaited(_stopListening());
       }
     } else if (mode == _InputMode.voice && _conversationActive && !_isSpeaking) {
-      unawaited(_startListening());
+      unawaited(_startWakeWordListening());
     }
   }
 
@@ -759,7 +804,7 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
                                 _endConversation();
                               } else {
                                 _conversationActive = true;
-                                _startListening();
+                                _startWakeWordListening();
                               }
                             },
                             textController: _textInputController,
