@@ -30,6 +30,14 @@ void main() {
         'what restaurants are open',
       );
     });
+
+    test('preview shows only orbit onward', () {
+      expect(
+        wakeSessionTranscriptPreview('hello Orbit what is nearby over'),
+        'Orbit what is nearby over',
+      );
+      expect(wakeSessionTranscriptPreview('just talking'), isNull);
+    });
   });
 
   group('WakeWordSession', () {

@@ -39,6 +39,15 @@ bool transcriptEndsWithOver(String text) {
       .hasMatch(text.trim());
 }
 
+/// Live UI: once "Orbit" is heard, show only from that word onward.
+String? wakeSessionTranscriptPreview(String raw) {
+  final trimmed = raw.trim();
+  if (trimmed.isEmpty) return null;
+  final match =
+      RegExp(r'\borbit\b.*', caseSensitive: false).firstMatch(trimmed);
+  return match?.group(0)?.trim();
+}
+
 String _stripLeadingFillers(String text) {
   var result = text;
   const fillers = ['uh', 'um', 'uhh', 'umm'];

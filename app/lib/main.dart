@@ -8,6 +8,7 @@ import 'firebase_options.dart';
 import 'home_screen.dart';
 import 'onboarding/firestore_preferences_service.dart';
 import 'onboarding/preferences_onboarding_screen.dart';
+import 'onboarding/user_preferences.dart';
 import 'orbit_groq_config.dart';
 
 Future<void> main() async {
@@ -53,6 +54,16 @@ class AuthGate extends StatefulWidget {
 class _AuthGateState extends State<AuthGate> {
   final FirestorePreferencesService _preferencesService =
       FirestorePreferencesService();
+  String? _loadedPrefsForUserId;
+  Future<UserPreferences?>? _preferencesFuture;
+
+  Future<UserPreferences?> _preferencesFor(String userId) {
+    if (_loadedPrefsForUserId != userId) {
+      _loadedPrefsForUserId = userId;
+      _preferencesFuture = _preferencesService.load(userId);
+    }
+    return _preferencesFuture!;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -68,7 +79,7 @@ class _AuthGateState extends State<AuthGate> {
         if (user != null) {
           final userName = user.displayName ?? user.email;
           return FutureBuilder(
-            future: _preferencesService.load(user.uid),
+            future: _preferencesFor(user.uid),
             builder: (context, preferencesSnapshot) {
               if (preferencesSnapshot.connectionState ==
                   ConnectionState.waiting) {
@@ -89,7 +100,11 @@ class _AuthGateState extends State<AuthGate> {
                 userId: user.uid,
                 userName: userName,
                 preferencesService: _preferencesService,
-                onComplete: () => setState(() {}),
+                onComplete: () {
+                  _loadedPrefsForUserId = null;
+                  _preferencesFuture = null;
+                  setState(() {});
+                },
               );
             },
           );

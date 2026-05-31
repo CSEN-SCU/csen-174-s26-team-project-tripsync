@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as developer;
 
@@ -233,14 +234,22 @@ Rules:
       };
     }
 
-    final response = await http.post(
-      Uri.parse(_chatUrl),
-      headers: {
-        'Authorization': 'Bearer $apiKey',
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode(body),
-    );
+    final response = await http
+        .post(
+          Uri.parse(_chatUrl),
+          headers: {
+            'Authorization': 'Bearer $apiKey',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode(body),
+        )
+        .timeout(
+          const Duration(seconds: 18),
+          onTimeout: () => throw GroqPoiNarratorException(
+            408,
+            'Groq request timed out after 18s',
+          ),
+        );
 
     if (response.statusCode != 200) {
       final snippet = response.body.length > 280
