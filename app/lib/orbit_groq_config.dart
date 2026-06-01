@@ -6,6 +6,8 @@ String _dartDefineValue(String name) {
   switch (name) {
     case 'GROQ_API_KEY':
       return const String.fromEnvironment('GROQ_API_KEY');
+    case 'FIREBASE_TTS_MODEL':
+      return const String.fromEnvironment('FIREBASE_TTS_MODEL');
     case 'FIREBASE_PROJECT_ID':
       return const String.fromEnvironment('FIREBASE_PROJECT_ID');
     case 'FIREBASE_MESSAGING_SENDER_ID':

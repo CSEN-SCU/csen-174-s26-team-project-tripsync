@@ -12,6 +12,7 @@ import 'package:speech_to_text/speech_to_text.dart';
 import 'app_messenger.dart';
 import 'auth/auth_service.dart';
 import 'conversation_turn.dart';
+import 'firebase_gemini_tts.dart';
 import 'groq_orpheus_tts.dart';
 import 'groq_poi_narrator.dart';
 import 'headset_media_bridge.dart';
@@ -292,16 +293,13 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
       final groqKey = groqApiKeyFromEnvironment();
       setState(() {
         _voiceReady = true;
-        _voiceEngineLabel = groqKey.isNotEmpty
-            ? 'Voice: Orbit (Groq) ready'
-            : 'Voice: phone only — GROQ_API_KEY not loaded';
-        _statusMessage = groqKey.isNotEmpty
-            ? 'Starting…'
-            : 'Starting with phone voice — add GROQ_API_KEY to app/.env and rebuild.';
+        _voiceEngineLabel = 'Voice: Orbit (Vertex Live) ready';
+        _statusMessage = 'Starting…';
       });
       if (groqKey.isEmpty) {
-        showOrbitSnack(
-          'Orbit voice off: GROQ_API_KEY missing. Use app/.env and run flutter run from app/.',
+        developer.log(
+          'GROQ_API_KEY missing — POI narration/chat may be limited; TTS uses Vertex Live.',
+          name: 'Orbit.tts_route',
         );
       }
       await _runSpeakThenListen();
@@ -382,6 +380,12 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
     final text = error.toString();
     if (text.contains('429')) return 'rate limited';
     if (text.contains('401')) return 'invalid API key';
+    if (error is FirebaseGeminiTtsException) {
+      return error.userMessage;
+    }
+    if (text.contains('billing') || text.contains('quota')) {
+      return 'Vertex billing or quota';
+    }
     if (text.contains('GroqOrpheusTtsException')) {
       return text.replaceFirst('GroqOrpheusTtsException', '').trim();
     }
@@ -482,58 +486,73 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen> {
     await _tts.speak(spoken);
   }
 
-  /// Speaks [raw] via Groq Orpheus or on-device TTS. Returns false if playback failed.
+  /// Speaks [raw] via Firebase Gemini TTS, Groq Orpheus fallback, or on-device TTS.
   Future<bool> _speakScript(String raw) async {
     final spoken = _ttsPhrase(raw);
     await reloadGroqConfigIfNeeded();
     final groqKey = groqApiKeyFromEnvironment();
     await HeadsetMediaBridge.instance.disarm();
-    try {
-      if (groqKey.isEmpty) {
-        developer.log(
-          'GROQ_API_KEY missing — using on-device TTS',
-          name: 'Orbit.tts_route',
-        );
-        await _speakWithDeviceVoice(spoken, 'no API key in app');
-        return true;
-      }
+    await HeadsetMediaBridge.instance.configurePlaybackSession();
 
-      _setVoiceEngineLabel('Voice: Orbit (Groq)…');
-      await HeadsetMediaBridge.instance.configurePlaybackSession();
+    try {
+      _setVoiceEngineLabel('Voice: Orbit (Vertex Live)…');
       developer.log(
-        'Using Groq Orpheus voice (${spoken.length} chars)',
+        'Using Vertex Live TTS (${spoken.length} chars)',
         name: 'Orbit.tts_route',
       );
-      await GroqOrpheusTts.speakLongEnglish(
-        apiKey: groqKey,
+      await FirebaseGeminiTts.speakLongEnglish(
         plainText: spoken,
-        voice: 'troy',
         onExternalPause: _onHeadsetPauseEndConversation,
       );
-      _setVoiceEngineLabel('Voice: Orbit (Groq)');
+      _setVoiceEngineLabel('Voice: Orbit (Vertex Live)');
       return true;
     } catch (e, st) {
       developer.log('$e', name: 'Orbit.tts_speak', stackTrace: st);
       if (groqKey.isNotEmpty) {
-        developer.log(
-          'Groq voice failed, falling back to on-device TTS: $e',
-          name: 'Orbit.tts_route',
-        );
         try {
-          await _speakWithDeviceVoice(spoken, _shortTtsError(e));
+          _setVoiceEngineLabel('Voice: Orbit (Groq fallback)…');
+          final reason = firebaseTtsFailureSummary(e);
+          showOrbitSnack(
+            'Vertex voice unavailable ($reason). Using Groq instead.',
+          );
+          developer.log(
+            'Vertex Live TTS failed, trying Groq Orpheus: $e',
+            name: 'Orbit.tts_route',
+          );
+          await GroqOrpheusTts.speakLongEnglish(
+            apiKey: groqKey,
+            plainText: spoken,
+            voice: 'troy',
+            onExternalPause: _onHeadsetPauseEndConversation,
+          );
+          _setVoiceEngineLabel('Voice: Orbit (Groq fallback)');
           return true;
-        } catch (e2, st2) {
-          developer.log('$e2', name: 'Orbit.tts_fallback', stackTrace: st2);
+        } catch (eGroq, stGroq) {
+          developer.log(
+            '$eGroq',
+            name: 'Orbit.tts_groq_fallback',
+            stackTrace: stGroq,
+          );
         }
+      }
+      developer.log(
+        'Cloud TTS failed, falling back to on-device TTS: $e',
+        name: 'Orbit.tts_route',
+      );
+      try {
+        await _speakWithDeviceVoice(spoken, _shortTtsError(e));
+        return true;
+      } catch (e2, st2) {
+        developer.log('$e2', name: 'Orbit.tts_fallback', stackTrace: st2);
       }
       if (!mounted) return false;
       setState(() {
         _sessionBusy = false;
         _isSpeaking = false;
         _voiceEngineLabel = 'Voice: failed — check volume and network';
-        _statusMessage = groqKey.isNotEmpty
-            ? 'Could not play audio (Groq and on-device). Check network and volume.'
-            : 'Could not play audio. Check volume and try replay.';
+        _statusMessage =
+            'Could not play audio (Vertex Live, Groq, and on-device). '
+            'Check network, Vertex AI in AI Logic, and volume.';
       });
       return false;
     }

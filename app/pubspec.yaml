@@ -50,6 +50,7 @@ dependencies:
   flutter_map: ^7.0.2
   latlong2: ^0.9.1
   flutter_dotenv: ^5.2.1
+  firebase_ai: ^2.3.0
 
 dev_dependencies:
   flutter_test:
