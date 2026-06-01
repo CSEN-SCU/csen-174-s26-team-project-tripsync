@@ -65,6 +65,10 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen>
   String _placeRecommendation = _fallbackRecommendation;
   TripPoi? _selectedPoi;
   bool _poiLoading = true;
+
+  /// True for the whole "tapped a new spot → finding + preparing a place"
+  /// sequence, so the map and chat can show a clear loading state.
+  bool _placeLookupLoading = false;
   final List<ConversationTurn> _conversationHistory = [];
   bool _followUpLoading = false;
 
@@ -78,6 +82,13 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen>
   bool _sendingText = false;
   bool _wakeListenArmed = false;
   bool _passiveWakePaused = false;
+  bool _processingVoiceCommand = false;
+  bool _handlingPinTap = false;
+  bool _startingWakeListen = false;
+
+  /// Bumped on each speak request so a superseded one stops cleanly instead of
+  /// playing over a newer clip (e.g. a map tap during the opening greeting).
+  int _speakGeneration = 0;
   Timer? _wakeRestartTimer;
 
   /// STT pause before the OS ends a listen segment (wake loop restarts after).
@@ -293,6 +304,7 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen>
     unawaited(() async {
       await HeadsetMediaBridge.instance.disarm();
       await _tts.stop();
+      await GroqOrpheusTts.stop();
       await _speech.stop();
       await _speech.cancel();
     }());
@@ -397,6 +409,11 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen>
 
   void _onSpeechStatus(String status) {
     if (!mounted) return;
+    developer.log(
+      'status=$status armed=$_wakeListenArmed active=$_conversationActive '
+      'speaking=$_isSpeaking awaitingCmd=${_wakeSession.awaitingCommand}',
+      name: 'Orbit.stt_status',
+    );
     if (status == 'listening') {
       _applyWakeUiState();
       return;
@@ -474,6 +491,7 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen>
   void _onWakeWordSttResult(String recognizedWords) {
     if (!mounted ||
         _heardFinalThisSession ||
+        _processingVoiceCommand ||
         _isSpeaking ||
         _followUpLoading ||
         !_wakeListenArmed) {
@@ -492,45 +510,90 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen>
     _wakeListenArmed = false;
     _wakeRestartTimer?.cancel();
     setState(() => _isListening = false);
-    unawaited(_handleUserReply(command, source: _ReplySource.voice));
+    _processingVoiceCommand = true;
+    unawaited(
+      _handleUserReply(command, source: _ReplySource.voice).whenComplete(() {
+        _processingVoiceCommand = false;
+      }),
+    );
   }
 
   /// Passive mic: always on in voice mode, captures only after "Orbit".
   /// Never call while Orbit is speaking — that cuts off TTS.
   Future<void> _startWakeWordListening() async {
-    if (!_voiceReady || _voiceUnsupported || !mounted) return;
-    if (_inputMode != _InputMode.voice || _passiveWakePaused) return;
-    if (_isSpeaking || _followUpLoading || _heardFinalThisSession) return;
-    if (_speech.isListening) return;
-
-    _wakeRestartTimer?.cancel();
-    await _speech.stop();
-    await _speech.cancel();
-    await HeadsetMediaBridge.instance.configureVoiceSession();
-
-    _wakeSession.reset();
-    setState(() {
-      _conversationActive = true;
-      _wakeListenArmed = true;
-      _heardFinalThisSession = false;
-      _liveTranscript = null;
-      _isListening = false;
-      _sessionBusy = true;
-      _statusMessage =
-          'Say "Orbit" to ask a question, then "over" when you are done.';
-    });
-
-    await _armHeadsetPauseControls();
-
-    await Future<void>.delayed(const Duration(milliseconds: 400));
-    if (!mounted ||
-        !_voiceReady ||
-        !_conversationActive ||
-        _passiveWakePaused) {
+    if (!_voiceReady || _voiceUnsupported || !mounted) {
+      developer.log(
+        'skip listen: voiceReady=$_voiceReady unsupported=$_voiceUnsupported '
+        'mounted=$mounted',
+        name: 'Orbit.listen',
+      );
       return;
     }
+    if (_inputMode != _InputMode.voice || _passiveWakePaused) {
+      developer.log(
+        'skip listen: mode=$_inputMode paused=$_passiveWakePaused',
+        name: 'Orbit.listen',
+      );
+      return;
+    }
+    if (_isSpeaking || _followUpLoading || _heardFinalThisSession) {
+      developer.log(
+        'skip listen: speaking=$_isSpeaking followUp=$_followUpLoading '
+        'heardFinal=$_heardFinalThisSession',
+        name: 'Orbit.listen',
+      );
+      return;
+    }
+    if (_speech.isListening) {
+      developer.log('skip listen: already listening', name: 'Orbit.listen');
+      return;
+    }
+    // Prevent two concurrent starts (e.g. the initial-load chain and a map-tap
+    // chain both driving the mic) from wedging the recognizer.
+    if (_startingWakeListen) {
+      developer.log('skip listen: start already in progress',
+          name: 'Orbit.listen');
+      return;
+    }
+    _startingWakeListen = true;
 
     try {
+      _wakeRestartTimer?.cancel();
+      await _speech.stop();
+      await _speech.cancel();
+      await HeadsetMediaBridge.instance.configureVoiceSession();
+
+      _wakeSession.reset();
+      setState(() {
+        _conversationActive = true;
+        _wakeListenArmed = true;
+        _heardFinalThisSession = false;
+        _liveTranscript = null;
+        _isListening = false;
+        _sessionBusy = true;
+        _statusMessage =
+            'Say "Orbit" to ask a question, then "over" when you are done.';
+      });
+
+      await _armHeadsetPauseControls();
+
+      // Give the OS time to switch the audio route from playback (Orbit's
+      // voice) back to record. Too short and listen() starts before the mic is
+      // ready, so the next "Orbit" is missed — common right after a narration.
+      await Future<void>.delayed(const Duration(milliseconds: 700));
+      if (!mounted ||
+          !_voiceReady ||
+          !_conversationActive ||
+          _passiveWakePaused) {
+        developer.log(
+          'abort listen after settle: mounted=$mounted '
+          'active=$_conversationActive paused=$_passiveWakePaused',
+          name: 'Orbit.listen',
+        );
+        return;
+      }
+
+      developer.log('listen: starting', name: 'Orbit.listen');
       await _speech.listen(
         onResult: (r) {
           if (!mounted || !_wakeListenArmed) return;
@@ -539,6 +602,12 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen>
               r.recognizedWords,
             ),
           );
+          if (_wakeSession.noteWakeIfNeeded(r.recognizedWords)) {
+            _applyWakeUiState();
+          }
+          // Submit as soon as "over" is heard (partial or final) — ingest only
+          // returns a command when the phrase ends with "over", and the
+          // re-entry guards below prevent a double submit.
           _onWakeWordSttResult(r.recognizedWords);
         },
         listenFor: const Duration(minutes: 5),
@@ -559,16 +628,21 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen>
         _statusMessage = 'Could not start listening. Say "Orbit" to try again.';
       });
       _scheduleWakeListenRestart();
+    } finally {
+      _startingWakeListen = false;
     }
   }
 
   Future<void> _stopPassiveWakeListening() async {
     _passiveWakePaused = true;
     _wakeListenArmed = false;
+    _speakGeneration++;
     _wakeRestartTimer?.cancel();
     _wakeSession.reset();
     await _speech.stop();
     await _speech.cancel();
+    await _tts.stop();
+    await GroqOrpheusTts.stop();
     if (!mounted) return;
     setState(() {
       _isListening = false;
@@ -582,11 +656,13 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen>
     _conversationActive = false;
     _wakeListenArmed = false;
     _heardFinalThisSession = true;
+    _speakGeneration++;
     _wakeSession.reset();
     await HeadsetMediaBridge.instance.disarm();
     await _speech.stop();
     await _speech.cancel();
     await _tts.stop();
+    await GroqOrpheusTts.stop();
 
     if (!mounted) return;
     setState(() {
@@ -606,17 +682,33 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen>
 
   Future<void> _speakWithDeviceVoice(String spoken, String reason) async {
     _notifyVoiceFallback(reason);
-    await _tts.speak(spoken);
+    final myGen = _speakGeneration;
+    await _tts.stop();
+    final chunks = GroqOrpheusTts.chunkPlainText(spoken, maxChunkChars: 350);
+    for (var i = 0; i < chunks.length; i++) {
+      if (myGen != _speakGeneration) return;
+      if (i > 0) {
+        await Future<void>.delayed(const Duration(milliseconds: 150));
+      }
+      await _tts.speak(chunks[i]);
+    }
   }
 
   Future<bool> _speakScript(String raw) async {
     if (!mounted) return false;
 
+    // Supersede any prior speak: stop the mic, the device voice, and any
+    // in-flight Orpheus clip so two voices never overlap.
+    final myGen = ++_speakGeneration;
     await _speech.stop();
     await _speech.cancel();
     _wakeListenArmed = false;
     _wakeSession.reset();
     await HeadsetMediaBridge.instance.disarm();
+    await _tts.stop();
+    await GroqOrpheusTts.stop();
+
+    if (!mounted || myGen != _speakGeneration) return false;
 
     setState(() {
       _isListening = false;
@@ -628,6 +720,7 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen>
     await reloadGroqConfigIfNeeded();
     final groqKey = groqApiKeyFromEnvironment();
     try {
+      if (myGen != _speakGeneration) return false;
       if (groqKey.isEmpty) {
         developer.log(
           'GROQ_API_KEY missing — using on-device TTS',
@@ -650,6 +743,7 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen>
       );
       return true;
     } catch (e, st) {
+      if (myGen != _speakGeneration) return false;
       developer.log('$e', name: 'Orbit.tts_speak', stackTrace: st);
       if (groqKey.isNotEmpty) {
         try {
@@ -666,7 +760,10 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen>
       });
       return false;
     } finally {
-      if (mounted) setState(() => _isSpeaking = false);
+      // Only the latest speak should flip the speaking flag off.
+      if (mounted && myGen == _speakGeneration) {
+        setState(() => _isSpeaking = false);
+      }
     }
   }
 
@@ -758,10 +855,10 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen>
     });
     _scrollChatToBottom();
 
-    // Only speak aloud when the user is in voice mode; keyboard users
-    // generally don't want surprise audio playback.
+    // Speak the answer for everything except typed/keyboard questions, which
+    // get a text-only reply (no surprise audio playback).
     var spoke = true;
-    if (source == _ReplySource.voice) {
+    if (source != _ReplySource.text) {
       spoke = await _speakScript(narration.script);
     }
     if (!mounted) return;
@@ -842,29 +939,37 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen>
     }
   }
 
-  Future<void> _speakPoiUpdate() async {
-    if (!_voiceReady || _voiceUnsupported || !mounted || _selectedPoi == null) {
-      return;
-    }
-
-    final script = _placeRecommendation;
+  void _showPoiRecommendationInChat() {
+    if (!mounted) return;
     setState(() {
       _conversationActive = true;
       _heardFinalThisSession = false;
       _liveTranscript = null;
       _conversationHistory
         ..clear()
-        ..add(ConversationTurn(isUser: false, text: script));
-      _statusMessage = 'Orbit is speaking…';
+        ..add(ConversationTurn(isUser: false, text: _placeRecommendation));
     });
     _scrollChatToBottom();
+  }
 
-    await _speakScript(script);
+  Future<void> _speakPoiUpdate() async {
+    if (!_voiceReady || _voiceUnsupported || !mounted) {
+      return;
+    }
+
+    _showPoiRecommendationInChat();
+    setState(() {
+      _sessionBusy = true;
+      _statusMessage = 'Orbit is speaking…';
+    });
+
+    final spoke = await _speakScript(_placeRecommendation);
     if (!mounted) return;
     setState(() {
       _sessionBusy = false;
-      _statusMessage =
-          'Say "Orbit" to ask a question, then "over" when finished.';
+      _statusMessage = spoke
+          ? 'Say "Orbit" to ask a question, then "over" when finished.'
+          : 'Recommendation is on screen — say "Orbit" to ask a question.';
     });
     if (_inputMode == _InputMode.voice) {
       await _startWakeWordListening();
@@ -872,28 +977,57 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen>
   }
 
   Future<void> _onDemoPinPlaced(LatLng point) async {
-    if (_voiceReady) {
-      await _speech.stop();
-      await _speech.cancel();
-      _wakeListenArmed = false;
-    }
+    // Ignore taps that land while a previous tap is still resolving so we don't
+    // fire two POI lookups (and two voices) at once.
+    if (_handlingPinTap) return;
+    _handlingPinTap = true;
+    try {
+      // Supersede any current narration (e.g. the opening greeting still
+      // playing) before we move to the new spot.
+      _speakGeneration++;
+      if (_voiceReady) {
+        await _speech.stop();
+        await _speech.cancel();
+        _wakeListenArmed = false;
+      }
+      await _tts.stop();
+      await GroqOrpheusTts.stop();
 
-    setState(() {
-      _locationLoading = false;
-      _locationReading = LocationReading(
-        outcome: LocationOutcome.granted,
-        latitude: point.latitude,
-        longitude: point.longitude,
-      );
-    });
+      if (!mounted) return;
+      setState(() {
+        _locationLoading = false;
+        _placeLookupLoading = true;
+        _statusMessage = 'Finding places here…';
+        _locationReading = LocationReading(
+          outcome: LocationOutcome.granted,
+          latitude: point.latitude,
+          longitude: point.longitude,
+        );
+      });
 
-    await _fetchNearbyPoi(deferEnrich: true);
-    if (!mounted) return;
-    await _prepareSpokenRecommendation();
-    if (!mounted) return;
+      await _fetchNearbyPoi(deferEnrich: true);
+      if (!mounted) return;
+      await _prepareSpokenRecommendation();
+      if (!mounted) return;
 
-    if (_voiceReady && _inputMode == _InputMode.voice && _selectedPoi != null) {
-      await _speakPoiUpdate();
+      setState(() => _placeLookupLoading = false);
+
+      if (_voiceReady && _inputMode == _InputMode.voice) {
+        await _speakPoiUpdate();
+      } else {
+        _showPoiRecommendationInChat();
+        if (mounted && _selectedPoi != null) {
+          setState(() {
+            _statusMessage =
+                'Found ${_selectedPoi!.name} nearby — type a question to chat.';
+          });
+        }
+      }
+    } finally {
+      _handlingPinTap = false;
+      if (mounted && _placeLookupLoading) {
+        setState(() => _placeLookupLoading = false);
+      }
     }
   }
 
@@ -934,6 +1068,7 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen>
                           height: third,
                           child: _HomeMapSection(
                             loading: _locationLoading,
+                            poiLoading: _placeLookupLoading,
                             reading: _locationReading,
                             onRetry: () {
                               setState(() {
@@ -950,8 +1085,8 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen>
                           child: _ChatSection(
                             history: _conversationHistory,
                             scrollController: _chatScrollController,
-                            isThinking: _followUpLoading,
-                            poiLoading: _poiLoading &&
+                            isThinking: _followUpLoading || _placeLookupLoading,
+                            poiLoading: (_poiLoading || _placeLookupLoading) &&
                                 _conversationHistory.isEmpty,
                           ),
                         ),
@@ -1040,10 +1175,12 @@ class _HomeMapSection extends StatelessWidget {
     required this.loading,
     required this.reading,
     required this.onRetry,
+    this.poiLoading = false,
     this.onPinPlaced,
   });
 
   final bool loading;
+  final bool poiLoading;
   final LocationReading? reading;
   final VoidCallback onRetry;
   final ValueChanged<LatLng>? onPinPlaced;
@@ -1055,7 +1192,18 @@ class _HomeMapSection extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),
-        child: _buildMapBody(theme),
+        child: Stack(
+          children: [
+            Positioned.fill(child: _buildMapBody(theme)),
+            if (poiLoading)
+              Positioned(
+                left: 0,
+                right: 0,
+                top: 0,
+                child: _MapLoadingBanner(theme: theme),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -1114,6 +1262,51 @@ class _HomeMapSection extends StatelessWidget {
       subtitle: subtitle,
       theme: theme,
       onRetry: onRetry,
+    );
+  }
+}
+
+/// Slim translucent pill shown over the map while a new place is being found.
+class _MapLoadingBanner extends StatelessWidget {
+  const _MapLoadingBanner({required this.theme});
+
+  final ThemeData theme;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.topCenter,
+      child: Container(
+        margin: const EdgeInsets.only(top: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.55),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 14,
+              height: 14,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor:
+                    AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              'Finding places here…',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: Colors.white.withValues(alpha: 0.92),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

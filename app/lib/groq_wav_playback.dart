@@ -11,3 +11,6 @@ Future<void> playGroqWavBytes(
       wavBytes,
       onExternalPause: onExternalPause,
     );
+
+/// Stops any in-flight Groq WAV playback (no-op on platforms without it).
+Future<void> stopGroqWavPlayback() => wav_playback.stopGroqWavPlayback();

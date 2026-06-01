@@ -102,6 +102,9 @@ class GroqOrpheusTts {
   }) =>
       playGroqWavBytes(wavBytes, onExternalPause: onExternalPause);
 
+  /// Stops any in-flight Orpheus playback so a new clip never overlaps it.
+  static Future<void> stop() => stopGroqWavPlayback();
+
   /// Splits [plainText] into chunks that fit Orpheus after [buildEnglishInput].
   static List<String> chunkPlainText(
     String plainText, {
@@ -218,7 +221,7 @@ class GroqOrpheusTts {
     return out.toBytes();
   }
 
-  /// Speaks long copy: synthesize all chunks in parallel, merge WAV, play once.
+  /// Speaks long copy: synthesize chunks sequentially, merge WAV, play once.
   static Future<void> speakLongEnglish({
     required String apiKey,
     required String plainText,
@@ -248,30 +251,13 @@ class GroqOrpheusTts {
       );
     }
 
-    try {
-      final merged = mergeWavFiles(wavs);
-      await playWavBytes(merged, onExternalPause: onExternalPause);
+    if (wavs.length == 1) {
+      await playWavBytes(wavs.first, onExternalPause: onExternalPause);
       return;
-    } catch (e, st) {
-      developer.log(
-        'WAV merge failed, playing chunks sequentially: $e',
-        name: 'Orbit.groq_tts',
-        stackTrace: st,
-      );
     }
 
-    Object? lastPlayError;
-    for (final wav in wavs) {
-      try {
-        await playWavBytes(wav, onExternalPause: onExternalPause);
-        return;
-      } catch (e, st) {
-        lastPlayError = e;
-        developer.log('$e', name: 'Orbit.groq_tts', stackTrace: st);
-      }
-    }
-    throw lastPlayError ??
-        GroqOrpheusTtsException(0, 'Could not play Orpheus audio');
+    final merged = mergeWavFiles(wavs);
+    await playWavBytes(merged, onExternalPause: onExternalPause);
   }
 }
 
