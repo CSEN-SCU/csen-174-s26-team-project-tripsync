@@ -13,13 +13,13 @@ import 'package:voice_interface/voice_interface.dart';
 
 import 'app_messenger.dart';
 import 'conversation_turn.dart';
-import 'groq_orpheus_tts.dart';
 import 'groq_poi_narrator.dart';
 import 'headset_media_bridge.dart';
 import 'location_service.dart';
 import 'models/trip_poi.dart';
 import 'onboarding/firestore_preferences_service.dart';
 import 'onboarding/preferences_service.dart';
+import 'openrouter_tts.dart';
 import 'poi/poi_repository.dart';
 import 'orbit_groq_config.dart';
 import 'preferences/preferences_screen.dart';
@@ -30,11 +30,7 @@ enum _InputMode { voice, keyboard }
 /// large voice mic (with "Orbit"/"over" wake-word session for hands-free
 /// follow-ups) or a typed text box, toggled inline.
 class OrbitHomeScreen extends StatefulWidget {
-  const OrbitHomeScreen({
-    super.key,
-    this.userName,
-    required this.interests,
-  });
+  const OrbitHomeScreen({super.key, this.userName, required this.interests});
 
   final String? userName;
   final List<String> interests;
@@ -235,16 +231,17 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen>
     });
 
     try {
-      final narration = await GroqPoiNarrator.narrate(
-        apiKey: apiKey,
-        poi: poi,
-        userInterests: _currentInterests,
-        fallback: poi.recommendationBlurb,
-        useWebSearch: useWebSearch,
-      ).timeout(
-        const Duration(seconds: 15),
-        onTimeout: () => PoiNarration(script: poi.recommendationBlurb),
-      );
+      final narration =
+          await GroqPoiNarrator.narrate(
+            apiKey: apiKey,
+            poi: poi,
+            userInterests: _currentInterests,
+            fallback: poi.recommendationBlurb,
+            useWebSearch: useWebSearch,
+          ).timeout(
+            const Duration(seconds: 15),
+            onTimeout: () => PoiNarration(script: poi.recommendationBlurb),
+          );
 
       if (!mounted) return;
       setState(() {
@@ -304,7 +301,7 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen>
     unawaited(() async {
       await HeadsetMediaBridge.instance.disarm();
       await _tts.stop();
-      await GroqOrpheusTts.stop();
+      await OpenRouterTts.stop();
       await _speech.stop();
       await _speech.cancel();
     }());
@@ -383,17 +380,17 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen>
         return;
       }
 
-      await reloadGroqConfigIfNeeded();
-      final groqKey = groqApiKeyFromEnvironment();
+      await reloadOpenRouterConfigIfNeeded();
+      final openRouterKey = openRouterApiKeyFromEnvironment();
       setState(() {
         _voiceReady = true;
-        _statusMessage = groqKey.isNotEmpty
+        _statusMessage = openRouterKey.isNotEmpty
             ? 'Say "Orbit" to ask, then "over". Or switch to keyboard.'
-            : 'Add GROQ_API_KEY for full voice. Phone voice is on.';
+            : 'Add OPENROUTER_API_KEY for cloud voice. Phone voice is on.';
       });
-      if (groqKey.isEmpty) {
+      if (openRouterKey.isEmpty) {
         showOrbitSnack(
-          'Orbit voice fallback active: add GROQ_API_KEY to app/.env.',
+          'Orbit voice fallback active: add OPENROUTER_API_KEY to app/.env.',
         );
       }
     } catch (e, st) {
@@ -482,8 +479,8 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen>
     final text = error.toString();
     if (text.contains('429')) return 'rate limited';
     if (text.contains('401')) return 'invalid API key';
-    if (text.contains('GroqOrpheusTtsException')) {
-      return text.replaceFirst('GroqOrpheusTtsException', '').trim();
+    if (text.contains('OpenRouterTtsException')) {
+      return text.replaceFirst('OpenRouterTtsException', '').trim();
     }
     return 'playback error';
   }
@@ -551,8 +548,10 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen>
     // Prevent two concurrent starts (e.g. the initial-load chain and a map-tap
     // chain both driving the mic) from wedging the recognizer.
     if (_startingWakeListen) {
-      developer.log('skip listen: start already in progress',
-          name: 'Orbit.listen');
+      developer.log(
+        'skip listen: start already in progress',
+        name: 'Orbit.listen',
+      );
       return;
     }
     _startingWakeListen = true;
@@ -642,7 +641,7 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen>
     await _speech.stop();
     await _speech.cancel();
     await _tts.stop();
-    await GroqOrpheusTts.stop();
+    await OpenRouterTts.stop();
     if (!mounted) return;
     setState(() {
       _isListening = false;
@@ -662,7 +661,7 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen>
     await _speech.stop();
     await _speech.cancel();
     await _tts.stop();
-    await GroqOrpheusTts.stop();
+    await OpenRouterTts.stop();
 
     if (!mounted) return;
     setState(() {
@@ -684,7 +683,7 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen>
     _notifyVoiceFallback(reason);
     final myGen = _speakGeneration;
     await _tts.stop();
-    final chunks = GroqOrpheusTts.chunkPlainText(spoken, maxChunkChars: 350);
+    final chunks = OpenRouterTts.chunkPlainText(spoken, maxChunkChars: 350);
     for (var i = 0; i < chunks.length; i++) {
       if (myGen != _speakGeneration) return;
       if (i > 0) {
@@ -698,7 +697,7 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen>
     if (!mounted) return false;
 
     // Supersede any prior speak: stop the mic, the device voice, and any
-    // in-flight Orpheus clip so two voices never overlap.
+    // in-flight cloud TTS clip so two voices never overlap.
     final myGen = ++_speakGeneration;
     await _speech.stop();
     await _speech.cancel();
@@ -706,7 +705,7 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen>
     _wakeSession.reset();
     await HeadsetMediaBridge.instance.disarm();
     await _tts.stop();
-    await GroqOrpheusTts.stop();
+    await OpenRouterTts.stop();
 
     if (!mounted || myGen != _speakGeneration) return false;
 
@@ -717,13 +716,13 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen>
     });
 
     final spoken = _ttsPhrase(raw);
-    await reloadGroqConfigIfNeeded();
-    final groqKey = groqApiKeyFromEnvironment();
+    await reloadOpenRouterConfigIfNeeded();
+    final openRouterKey = openRouterApiKeyFromEnvironment();
     try {
       if (myGen != _speakGeneration) return false;
-      if (groqKey.isEmpty) {
+      if (openRouterKey.isEmpty) {
         developer.log(
-          'GROQ_API_KEY missing — using on-device TTS',
+          'OPENROUTER_API_KEY missing — using on-device TTS',
           name: 'Orbit.tts_route',
         );
         await _speakWithDeviceVoice(spoken, 'no API key in app');
@@ -732,20 +731,20 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen>
 
       await HeadsetMediaBridge.instance.configurePlaybackSession();
       developer.log(
-        'Using Groq Orpheus voice (${spoken.length} chars)',
+        'Using OpenRouter GPT-4o Mini TTS voice (${spoken.length} chars)',
         name: 'Orbit.tts_route',
       );
-      await GroqOrpheusTts.speakLongEnglish(
-        apiKey: groqKey,
+      await OpenRouterTts.speakLongEnglish(
+        apiKey: openRouterKey,
         plainText: spoken,
-        voice: 'troy',
+        voice: 'alloy',
         onExternalPause: _onHeadsetPauseEndConversation,
       );
       return true;
     } catch (e, st) {
       if (myGen != _speakGeneration) return false;
       developer.log('$e', name: 'Orbit.tts_speak', stackTrace: st);
-      if (groqKey.isNotEmpty) {
+      if (openRouterKey.isNotEmpty) {
         try {
           await _speakWithDeviceVoice(spoken, _shortTtsError(e));
           return true;
@@ -810,8 +809,9 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen>
     }
 
     final user = widget.userName?.trim();
-    final prefix =
-        user != null && user.isNotEmpty ? 'user=$user' : 'user=anonymous';
+    final prefix = user != null && user.isNotEmpty
+        ? 'user=$user'
+        : 'user=anonymous';
     developer.log(
       '[$prefix] place_response (${source.name}): $cleaned',
       name: 'Orbit.place_response',
@@ -904,10 +904,8 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen>
     }
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => PreferencesScreen(
-          userId: user.uid,
-          userName: widget.userName,
-        ),
+        builder: (_) =>
+            PreferencesScreen(userId: user.uid, userName: widget.userName),
       ),
     );
     // After returning from preferences, re-pull saved tags and refresh
@@ -916,7 +914,8 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen>
     try {
       final latest = await _preferencesService.load(user.uid);
       final updated = latest?.interests.toList() ?? const <String>[];
-      final changed = updated.length != _currentInterests.length ||
+      final changed =
+          updated.length != _currentInterests.length ||
           !updated.toSet().containsAll(_currentInterests);
       if (changed) {
         setState(() => _currentInterests = updated);
@@ -991,7 +990,7 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen>
         _wakeListenArmed = false;
       }
       await _tts.stop();
-      await GroqOrpheusTts.stop();
+      await OpenRouterTts.stop();
 
       if (!mounted) return;
       setState(() {
@@ -1040,7 +1039,9 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen>
   @override
   Widget build(BuildContext context) {
     final first = _firstName();
-    final greeting = first.isEmpty ? "Let's explore!" : "Hi $first, let's explore!";
+    final greeting = first.isEmpty
+        ? "Let's explore!"
+        : "Hi $first, let's explore!";
 
     return Scaffold(
       body: Container(
@@ -1054,10 +1055,7 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen>
         child: SafeArea(
           child: Column(
             children: [
-              _HomeHeader(
-                greeting: greeting,
-                onOpenSettings: _openSettings,
-              ),
+              _HomeHeader(greeting: greeting, onOpenSettings: _openSettings),
               Expanded(
                 child: LayoutBuilder(
                   builder: (context, constraints) {
@@ -1086,7 +1084,8 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen>
                             history: _conversationHistory,
                             scrollController: _chatScrollController,
                             isThinking: _followUpLoading || _placeLookupLoading,
-                            poiLoading: (_poiLoading || _placeLookupLoading) &&
+                            poiLoading:
+                                (_poiLoading || _placeLookupLoading) &&
                                 _conversationHistory.isEmpty,
                           ),
                         ),
@@ -1213,8 +1212,7 @@ class _HomeMapSection extends StatelessWidget {
       return _MapPlaceholder(
         icon: Icons.my_location_rounded,
         title: 'Finding your location…',
-        subtitle:
-            'Orbit uses your location to suggest places nearby.',
+        subtitle: 'Orbit uses your location to suggest places nearby.',
         theme: theme,
       );
     }
@@ -1230,30 +1228,30 @@ class _HomeMapSection extends StatelessWidget {
 
     final (icon, title, subtitle) = switch (r.outcome) {
       LocationOutcome.denied => (
-          Icons.location_off_rounded,
-          'Location access denied',
-          'Orbit needs your location to find nearby places. Tap retry.',
-        ),
+        Icons.location_off_rounded,
+        'Location access denied',
+        'Orbit needs your location to find nearby places. Tap retry.',
+      ),
       LocationOutcome.deniedForever => (
-          Icons.location_disabled_rounded,
-          'Permission turned off',
-          'Open Settings → Orbit → Location to enable it.',
-        ),
+        Icons.location_disabled_rounded,
+        'Permission turned off',
+        'Open Settings → Orbit → Location to enable it.',
+      ),
       LocationOutcome.servicesDisabled => (
-          Icons.gps_off_rounded,
-          'Device location is off',
-          'Turn on Location Services then tap retry.',
-        ),
+        Icons.gps_off_rounded,
+        'Device location is off',
+        'Turn on Location Services then tap retry.',
+      ),
       LocationOutcome.error => (
-          Icons.error_outline_rounded,
-          'Could not read your location',
-          r.errorMessage ?? 'Tap retry to try again.',
-        ),
+        Icons.error_outline_rounded,
+        'Could not read your location',
+        r.errorMessage ?? 'Tap retry to try again.',
+      ),
       LocationOutcome.granted => (
-          Icons.my_location_rounded,
-          'Locating…',
-          'One moment.',
-        ),
+        Icons.my_location_rounded,
+        'Locating…',
+        'One moment.',
+      ),
     };
 
     return _MapPlaceholder(
@@ -1292,8 +1290,9 @@ class _MapLoadingBanner extends StatelessWidget {
               height: 14,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                valueColor:
-                    AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  theme.colorScheme.primary,
+                ),
               ),
             ),
             const SizedBox(width: 10),
@@ -1548,8 +1547,9 @@ class _ChatBubble extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
-        mainAxisAlignment:
-            isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: isUser
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         children: [
           Flexible(
             child: ConstrainedBox(
@@ -1822,7 +1822,11 @@ class _VoiceInputBody extends StatelessWidget {
             child: _MicButton(
               listening: isListening,
               speaking: isSpeaking,
-              busy: sessionBusy && !isListening && !isSpeaking && !wakeListenArmed,
+              busy:
+                  sessionBusy &&
+                  !isListening &&
+                  !isSpeaking &&
+                  !wakeListenArmed,
               enabled: voiceReady,
               onTap: voiceReady ? onMicPressed : null,
               theme: theme,
@@ -1884,17 +1888,17 @@ class _MicButton extends StatelessWidget {
     final color = !enabled
         ? Colors.white.withValues(alpha: 0.18)
         : listening
-            ? Colors.redAccent
-            : speaking
-                ? Colors.amber
-                : primary;
+        ? Colors.redAccent
+        : speaking
+        ? Colors.amber
+        : primary;
     final icon = !enabled
         ? Icons.mic_off_rounded
         : listening
-            ? Icons.stop_rounded
-            : speaking
-                ? Icons.graphic_eq_rounded
-                : Icons.mic_rounded;
+        ? Icons.stop_rounded
+        : speaking
+        ? Icons.graphic_eq_rounded
+        : Icons.mic_rounded;
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -1978,9 +1982,7 @@ class _KeyboardInputBody extends StatelessWidget {
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
               hintText: 'Ask Orbit anything about places nearby…',
-              hintStyle: TextStyle(
-                color: Colors.white.withValues(alpha: 0.4),
-              ),
+              hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.4)),
               filled: true,
               fillColor: Colors.black.withValues(alpha: 0.18),
               border: OutlineInputBorder(
@@ -2023,8 +2025,10 @@ class _KeyboardInputBody extends StatelessWidget {
               onPressed: sending ? null : onSend,
               style: FilledButton.styleFrom(
                 backgroundColor: theme.colorScheme.primary,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 12,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),

@@ -95,7 +95,7 @@ flowchart LR
 
 ## Current-state C4 context diagram
 
-**Narrative.** Today the traveler uses a **foreground** Orbit session: sign in (or continue as guest), complete onboarding, open the voice tab, and start a conversation. Orbit reads **Firestore** for POIs and user preferences, calls **Groq** for both LLM narration/follow-ups and Orpheus TTS, and uses the **OS audio stack** for STT and fallback TTS. **Maps app deep links** and **background proactive pings** are not wired yet. Admin tooling seeds POIs offline via Overpass → JSON → Firebase Admin.
+**Narrative.** Today the traveler uses a **foreground** Orbit session: sign in (or continue as guest), complete onboarding, open the voice tab, and start a conversation. Orbit reads **Firestore** for POIs and user preferences, calls **Groq** for LLM narration/follow-ups, calls **OpenRouter** for TTS, and uses the **OS audio stack** for STT and fallback TTS. **Maps app deep links** and **background proactive pings** are not wired yet. Admin tooling seeds POIs offline via Overpass → JSON → Firebase Admin.
 
 ```mermaid
 flowchart LR
@@ -104,14 +104,14 @@ flowchart LR
     orbit["Orbit Flutter app<br/>foreground voice session"]
     firestore[("Cloud Firestore<br/>users + pois")]
     groq_llm[["Groq Cloud<br/>chat / Compound web search"]]
-    groq_tts[["Groq Cloud<br/>Orpheus TTS"]]
+    openrouter_tts[["OpenRouter<br/>GPT-4o Mini TTS"]]
     os[["Mobile OS<br/>STT, fallback TTS, GPS"]]
     osm_tiles[["OpenStreetMap<br/>tile CDN"]]
 
     traveler -->|"opens app, starts voice loop"| orbit
     orbit -->|"read/write preferences, geo POI query"| firestore
     orbit -->|"POST /chat/completions"| groq_llm
-    orbit -->|"POST /audio/speech"| groq_tts
+    orbit -->|"POST /audio/speech"| openrouter_tts
     orbit -->|"speech_to_text, flutter_tts, Geolocator"| os
     orbit -->|"map preview tiles"| osm_tiles
 
@@ -120,7 +120,7 @@ flowchart LR
     classDef person fill:#fde7f3,stroke:#a3296b,color:#111
 
     class traveler person
-    class firestore,groq_llm,groq_tts,os,osm_tiles ext
+    class firestore,groq_llm,openrouter_tts,os,osm_tiles ext
     class orbit wired
 ```
 
@@ -142,7 +142,7 @@ flowchart LR
         poi_repo["PoiRepository<br/>app/lib/poi/poi_repository.dart"]
         home["Home screen + voice loop<br/>app/lib/home_screen.dart"]
         narrator["GroqPoiNarrator<br/>app/lib/groq_poi_narrator.dart"]
-        tts["GroqOrpheusTts<br/>app/lib/groq_orpheus_tts.dart"]
+        tts["OpenRouterTts<br/>app/lib/openrouter_tts.dart"]
         loc["LocationService<br/>app/lib/location_service.dart"]
         llm_tab["LLM dev tab<br/>app/lib/llm_integration_screen.dart"]
     end
@@ -163,7 +163,7 @@ flowchart LR
     fb_auth[["Firebase Auth<br/>project orbit-86c27"]]
     firestore[("Cloud Firestore<br/>users + pois")]
     groq_chat[["Groq chat / Compound"]]
-    groq_tts_ext[["Groq Orpheus TTS"]]
+    openrouter_tts_ext[["OpenRouter TTS"]]
     osm_tiles[["OpenStreetMap tiles"]]
     overpass[["Overpass API"]]
     os[["Mobile OS<br/>STT, fallback TTS, GPS"]]
@@ -183,7 +183,7 @@ flowchart LR
     home --> narrator
     narrator --> groq_chat
     home --> tts
-    tts --> groq_tts_ext
+    tts --> openrouter_tts_ext
     home --> os
     home --> osm_tiles
     llm_tab --> llm_pkg
@@ -199,7 +199,7 @@ flowchart LR
     classDef person fill:#fde7f3,stroke:#a3296b,color:#111
 
     class traveler person
-    class fb_auth,firestore,groq_chat,groq_tts_ext,osm_tiles,overpass,os ext
+    class fb_auth,firestore,groq_chat,openrouter_tts_ext,osm_tiles,overpass,os ext
     class llm_pkg,voice_pkg,loc_pkg stub
     class main,auth,prefs,poi_repo,home,narrator,tts,loc,llm_tab,seeder,osm_gen wired
 ```
@@ -244,9 +244,9 @@ flowchart LR
 | Firebase Auth (project `orbit-86c27`) | Identity | Yes | `app/lib/main.dart` → `Firebase.initializeApp`; `app/lib/auth/auth_service.dart` → `AuthService.signInWithGoogle` |
 | Cloud Firestore | Document DB | Yes | `auth_service.dart` → `_ensureUserProfile`; `firestore_preferences_service.dart` → load/save preferences; `poi_repository.dart` → geohash POI queries; `geo-poi-database/seed_pois.js` → admin POI seed |
 | Groq chat — `groq/compound-mini`, `llama-3.3-70b-versatile` | AI API (LLM + optional web search) | Yes | `app/lib/groq_poi_narrator.dart` → `GroqPoiNarrator.narrate`, `replyToFollowUp`; `LLM-Integration/lib/src/llm_client.dart` → dev tab only |
-| Groq Orpheus TTS (`canopylabs/orpheus-v1-english`) | AI API (TTS) | Yes | `app/lib/groq_orpheus_tts.dart` → `GroqOrpheusTts.synthesizeEnglishWav`; key in `orbit_groq_config.dart` |
+| OpenRouter TTS (`openai/gpt-4o-mini-tts-2025-12-15`) | AI API (TTS) | Yes | `app/lib/openrouter_tts.dart` → `OpenRouterTts.synthesizeMp3`; key in `orbit_groq_config.dart` |
 | Apple / Android speech recognition | On-device STT | Yes | `app/lib/home_screen.dart` → `speech_to_text` |
-| Native platform TTS | OS fallback when Groq unavailable | Yes | `app/lib/home_screen.dart` → `flutter_tts` |
+| Native platform TTS | OS fallback when OpenRouter unavailable | Yes | `app/lib/home_screen.dart` → `flutter_tts` |
 | OS GPS (`geolocator`) | Location (when-in-use, one-shot) | Yes | `app/lib/location_service.dart` → `Geolocator.getCurrentPosition` |
 | OpenStreetMap tile CDN | Map tiles | Yes | `app/lib/home_screen.dart` → `_MapPreview` / `TileLayer` |
 | Google Sign-In | Identity broker | Yes | `app/lib/auth/auth_service.dart` → `GoogleSignIn().signIn()` |

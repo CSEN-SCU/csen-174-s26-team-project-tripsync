@@ -5,14 +5,14 @@ import 'dart:typed_data';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:path_provider/path_provider.dart';
 
-/// The single active Groq playback. Tracked at module level so a new clip can
+/// The single active cloud TTS playback. Tracked at module level so a new clip can
 /// stop a previous one — `flutter_tts.stop()` does not touch this player, so
-/// without this guard two Orpheus clips can play over each other.
+/// without this guard two generated clips can play over each other.
 AudioPlayer? _activePlayer;
 int _playbackToken = 0;
 
-/// Stops any in-flight Groq WAV playback. Safe to call when nothing is playing.
-Future<void> stopGroqWavPlayback() async {
+/// Stops any in-flight generated audio playback. Safe to call when nothing is playing.
+Future<void> stopCloudAudioPlayback() async {
   _playbackToken++;
   final player = _activePlayer;
   _activePlayer = null;
@@ -23,20 +23,22 @@ Future<void> stopGroqWavPlayback() async {
   } catch (_) {}
 }
 
-/// iOS/macOS/Android/desktop: AVPlayer is picky about WAV sources; write a real `.wav` file.
-Future<void> playGroqWavBytes(
-  Uint8List wavBytes, {
+/// iOS/macOS/Android/desktop playback is most reliable from a real temp file.
+Future<void> playCloudAudioBytes(
+  Uint8List audioBytes, {
+  required String fileExtension,
   void Function()? onExternalPause,
 }) async {
   // Supersede any previous playback before starting this one.
-  await stopGroqWavPlayback();
+  await stopCloudAudioPlayback();
   final myToken = ++_playbackToken;
 
+  final safeExtension = fileExtension.replaceAll(RegExp(r'[^a-z0-9]'), '');
   final dir = await getTemporaryDirectory();
   final path =
-      '${dir.path}/orpheus_${DateTime.now().microsecondsSinceEpoch}.wav';
+      '${dir.path}/cloud_tts_${DateTime.now().microsecondsSinceEpoch}.$safeExtension';
   final file = File(path);
-  await file.writeAsBytes(wavBytes, flush: true);
+  await file.writeAsBytes(audioBytes, flush: true);
 
   final player = AudioPlayer();
   _activePlayer = player;
@@ -66,7 +68,7 @@ Future<void> playGroqWavBytes(
   } finally {
     await subscription?.cancel();
     // Only tear down if we are still the active playback; a newer clip may
-    // have already replaced us via stopGroqWavPlayback().
+    // have already replaced us via stopCloudAudioPlayback().
     if (myToken == _playbackToken) {
       _activePlayer = null;
       try {

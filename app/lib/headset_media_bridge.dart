@@ -24,7 +24,7 @@ class HeadsetMediaBridge {
 
   bool get isArmed => _armed;
 
-  /// Playback-only session for Orpheus WAV (after STT, iOS needs this route).
+  /// Playback-only session for generated WAV (after STT, iOS needs this route).
   Future<void> configurePlaybackSession() async {
     if (kIsWeb) return;
     try {
@@ -34,8 +34,8 @@ class HeadsetMediaBridge {
           avAudioSessionCategory: AVAudioSessionCategory.playback,
           avAudioSessionCategoryOptions:
               AVAudioSessionCategoryOptions.allowBluetooth |
-                  AVAudioSessionCategoryOptions.allowBluetoothA2dp |
-                  AVAudioSessionCategoryOptions.defaultToSpeaker,
+              AVAudioSessionCategoryOptions.allowBluetoothA2dp |
+              AVAudioSessionCategoryOptions.defaultToSpeaker,
           avAudioSessionMode: AVAudioSessionMode.spokenAudio,
           androidAudioAttributes: const AndroidAudioAttributes(
             contentType: AndroidAudioContentType.speech,
@@ -59,8 +59,8 @@ class HeadsetMediaBridge {
           avAudioSessionCategory: AVAudioSessionCategory.playAndRecord,
           avAudioSessionCategoryOptions:
               AVAudioSessionCategoryOptions.allowBluetooth |
-                  AVAudioSessionCategoryOptions.allowBluetoothA2dp |
-                  AVAudioSessionCategoryOptions.defaultToSpeaker,
+              AVAudioSessionCategoryOptions.allowBluetoothA2dp |
+              AVAudioSessionCategoryOptions.defaultToSpeaker,
           avAudioSessionMode: AVAudioSessionMode.spokenAudio,
           androidAudioAttributes: AndroidAudioAttributes(
             contentType: AndroidAudioContentType.speech,
