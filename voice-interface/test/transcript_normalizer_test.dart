@@ -17,9 +17,23 @@ void main() {
       expect(transcriptContainsWakeWord('orbital mechanics'), isFalse);
     });
 
+    test('detects common orbit mishears from speech-to-text', () {
+      expect(transcriptContainsWakeWord('hey or bit what is this'), isTrue);
+      expect(transcriptContainsWakeWord('orbid when is it open'), isTrue);
+      expect(transcriptContainsWakeWord('orbot tell me more'), isTrue);
+      // Still must not trip on unrelated words.
+      expect(transcriptContainsWakeWord('orbital mechanics'), isFalse);
+      expect(transcriptContainsWakeWord('order a coffee'), isFalse);
+    });
+
     test('detects over at end', () {
       expect(transcriptEndsWithOver('what is nearby over'), isTrue);
       expect(transcriptEndsWithOver('overlook the park'), isFalse);
+    });
+
+    test('detects over with trailing punctuation or "and out"', () {
+      expect(transcriptEndsWithOver('what is nearby over.'), isTrue);
+      expect(transcriptEndsWithOver('what is nearby over and out'), isTrue);
     });
 
     test('extracts command between orbit and over', () {
@@ -29,6 +43,38 @@ void main() {
         ),
         'what restaurants are open',
       );
+      expect(
+        extractCommandFromWakeTranscript(
+          'Orbit when it is open over',
+        ),
+        'when it is open',
+      );
+      expect(
+        extractCommandFromWakeTranscript(
+          'yeah tell me Orbit when it is open over',
+        ),
+        'when it is open',
+      );
+      expect(
+        extractCommandFromWakeTranscript(
+          'or bit when it is open over and out',
+        ),
+        'when it is open',
+      );
+    });
+
+    test('preview shows orbit through first over only', () {
+      expect(
+        wakeSessionTranscriptPreview('hello Orbit what is nearby over'),
+        'Orbit what is nearby over',
+      );
+      expect(
+        wakeSessionTranscriptPreview(
+          'Orbit when it is open over extra STT noise',
+        ),
+        'Orbit when it is open over',
+      );
+      expect(wakeSessionTranscriptPreview('just talking'), isNull);
     });
   });
 

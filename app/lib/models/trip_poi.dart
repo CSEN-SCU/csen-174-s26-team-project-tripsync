@@ -27,10 +27,12 @@ class TripPoi {
   /// Short spoken / on-screen blurb for the home voice loop.
   String get recommendationBlurb {
     final trimmedDescription = description.trim();
-    if (trimmedDescription.isEmpty) {
-      final citySuffix = city.trim().isEmpty ? '' : ' in ${city.trim()}';
-      return '$name — a ${category.trim().isEmpty ? 'nearby' : category} spot$citySuffix. Worth a look if you are in the area.';
+    if (trimmedDescription.isNotEmpty) {
+      return trimmedDescription.startsWith(name)
+          ? trimmedDescription
+          : '$name — $trimmedDescription';
     }
-    return '$name — $trimmedDescription';
+    final citySuffix = city.trim().isEmpty ? '' : ' in ${city.trim()}';
+    return "You're close to $name$citySuffix. Worth a look if you're in the area.";
   }
 }
