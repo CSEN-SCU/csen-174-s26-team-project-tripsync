@@ -6,14 +6,18 @@ import 'package:http/http.dart' as http;
 
 import 'cloud_audio_playback.dart';
 
-/// OpenRouter-hosted GPT-4o Mini TTS.
+/// OpenRouter-hosted text-to-speech.
 ///
 /// Returns raw MP3 bytes from the OpenRouter speech endpoint.
 class OpenRouterTts {
   OpenRouterTts._();
 
   static const String speechUrl = 'https://openrouter.ai/api/v1/audio/speech';
-  static const String modelId = 'openai/gpt-4o-mini-tts-2025-12-15';
+  static const List<_OpenRouterTtsModel> models = [
+    // Temporarily disabled while testing the xAI backup model.
+    _OpenRouterTtsModel(id: 'mistralai/voxtral-mini-tts-2603', voice: 'alloy'),
+    _OpenRouterTtsModel(id: 'x-ai/grok-voice-tts-1.0', voice: 'eve'),
+  ];
 
   /// Keep chunks comfortably below the model's 4K context window.
   static const int maxChunkLength = 1400;
@@ -24,57 +28,71 @@ class OpenRouterTts {
   static Future<Uint8List> synthesizeMp3({
     required String apiKey,
     required String input,
-    String voice = 'alloy',
+    String? voice,
+    String? userId,
   }) async {
     if (input.trim().isEmpty) {
       throw OpenRouterTtsException(400, 'input is empty');
     }
 
     const maxAttempts = 4;
-    for (var attempt = 0; attempt < maxAttempts; attempt++) {
-      final response = await http.post(
-        Uri.parse(speechUrl),
-        headers: {
-          'Authorization': 'Bearer $apiKey',
-          'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://orbit.local',
-          'X-Title': 'Orbit',
-        },
-        body: jsonEncode({
-          'model': modelId,
-          'voice': voice,
-          'input': input,
-          'response_format': 'mp3',
-        }),
-      );
+    OpenRouterTtsException? lastException;
+    final failures = <String>[];
 
-      if (response.statusCode == 200) {
-        return response.bodyBytes;
-      }
+    for (final model in models) {
+      for (var attempt = 0; attempt < maxAttempts; attempt++) {
+        final response = await http.post(
+          Uri.parse(speechUrl),
+          headers: {
+            'Authorization': 'Bearer $apiKey',
+            'Content-Type': 'application/json',
+            'HTTP-Referer': 'https://orbit.local',
+            'X-Title': 'Orbit',
+          },
+          body: jsonEncode({
+            'model': model.id,
+            'voice': voice ?? model.voice,
+            'input': input,
+            'response_format': 'mp3',
+            if (userId != null && userId.trim().isNotEmpty)
+              'user': userId.trim(),
+          }),
+        );
 
-      final snippet = response.body.length > 280
-          ? '${response.body.substring(0, 280)}...'
-          : response.body;
-      final retryable =
-          response.statusCode == 429 || response.statusCode >= 500;
-      if (retryable && attempt < maxAttempts - 1) {
-        final waitMs = 350 * (attempt + 1);
+        if (response.statusCode == 200) {
+          return response.bodyBytes;
+        }
+
+        final snippet = response.body.length > 280
+            ? '${response.body.substring(0, 280)}...'
+            : response.body;
+        final retryable =
+            response.statusCode == 429 || response.statusCode >= 500;
+        if (retryable && attempt < maxAttempts - 1) {
+          final waitMs = 350 * (attempt + 1);
+          developer.log(
+            'OpenRouter speech ${model.id} HTTP ${response.statusCode}, retry in ${waitMs}ms',
+            name: 'Orbit.openrouter_tts',
+          );
+          await Future<void>.delayed(Duration(milliseconds: waitMs));
+          continue;
+        }
+
         developer.log(
-          'OpenRouter speech HTTP ${response.statusCode}, retry in ${waitMs}ms',
+          'OpenRouter speech ${model.id} HTTP ${response.statusCode}: $snippet',
           name: 'Orbit.openrouter_tts',
         );
-        await Future<void>.delayed(Duration(milliseconds: waitMs));
-        continue;
+        failures.add('${model.id}: HTTP ${response.statusCode}: $snippet');
+        lastException = OpenRouterTtsException(
+          response.statusCode,
+          failures.join(' | '),
+        );
+        break;
       }
-
-      developer.log(
-        'OpenRouter speech HTTP ${response.statusCode}: $snippet',
-        name: 'Orbit.openrouter_tts',
-      );
-      throw OpenRouterTtsException(response.statusCode, snippet);
     }
 
-    throw OpenRouterTtsException(0, 'OpenRouter speech failed after retries');
+    throw lastException ??
+        OpenRouterTtsException(0, 'OpenRouter speech failed after retries');
   }
 
   /// Plays MP3 bytes via a temp `.mp3` file.
@@ -154,7 +172,8 @@ class OpenRouterTts {
   static Future<void> speakLongEnglish({
     required String apiKey,
     required String plainText,
-    String voice = 'alloy',
+    String? voice,
+    String? userId,
     void Function()? onExternalPause,
   }) async {
     final chunks = chunkPlainText(plainText);
@@ -168,10 +187,18 @@ class OpenRouterTts {
         apiKey: apiKey,
         input: buildSpeechInput(chunks[i]),
         voice: voice,
+        userId: userId,
       );
       await playMp3Bytes(mp3, onExternalPause: onExternalPause);
     }
   }
+}
+
+class _OpenRouterTtsModel {
+  const _OpenRouterTtsModel({required this.id, required this.voice});
+
+  final String id;
+  final String voice;
 }
 
 class OpenRouterTtsException implements Exception {

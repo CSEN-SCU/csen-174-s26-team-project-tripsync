@@ -480,7 +480,8 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen>
     if (text.contains('429')) return 'rate limited';
     if (text.contains('401')) return 'invalid API key';
     if (text.contains('OpenRouterTtsException')) {
-      return text.replaceFirst('OpenRouterTtsException', '').trim();
+      final reason = text.replaceFirst('OpenRouterTtsException', '').trim();
+      return reason.length > 180 ? '${reason.substring(0, 180)}...' : reason;
     }
     return 'playback error';
   }
@@ -731,13 +732,13 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen>
 
       await HeadsetMediaBridge.instance.configurePlaybackSession();
       developer.log(
-        'Using OpenRouter GPT-4o Mini TTS voice (${spoken.length} chars)',
+        'Using OpenRouter TTS voice (${spoken.length} chars)',
         name: 'Orbit.tts_route',
       );
       await OpenRouterTts.speakLongEnglish(
         apiKey: openRouterKey,
         plainText: spoken,
-        voice: 'alloy',
+        userId: FirebaseAuth.instance.currentUser?.uid,
         onExternalPause: _onHeadsetPauseEndConversation,
       );
       return true;
