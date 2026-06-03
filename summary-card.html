@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orbit - Project Summary</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Playfair+Display:ital,wght@0,600;1,600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2A2D34;
+            --accent: #FF6B35;
+            --accent-light: #FF9F7A;
+            --bg: #F9F9F9;
+            --text: #333333;
+            --text-light: #666666;
+        }
+
+        @page {
+            size: 8.5in 11in;
+            margin: 0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            width: 8.5in;
+            height: 11in;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Background decorative elements */
+        .bg-shape-1 {
+            position: absolute;
+            top: -100px;
+            right: -100px;
+            width: 500px;
+            height: 500px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-light) 0%, var(--accent) 100%);
+            opacity: 0.1;
+            z-index: 0;
+        }
+
+        .bg-shape-2 {
+            position: absolute;
+            bottom: -150px;
+            left: -100px;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            border: 2px dashed var(--primary);
+            opacity: 0.05;
+            z-index: 0;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            padding: 3.5rem 4rem;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            margin-bottom: 3rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .logo-area {
+            display: flex;
+            flex-direction: column;
+        }
+
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 5rem;
+            color: var(--primary);
+            line-height: 1;
+            margin-bottom: 0.5rem;
+            letter-spacing: -1px;
+        }
+
+        .tagline {
+            font-size: 1.5rem;
+            color: var(--accent);
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2.5rem;
+            flex-grow: 1;
+        }
+
+        .section {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.03);
+            border-left: 6px solid var(--accent);
+        }
+
+        .section-title {
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--text-light);
+            margin-bottom: 1rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title::before {
+            content: '';
+            display: block;
+            width: 24px;
+            height: 24px;
+            background-color: var(--accent-light);
+            border-radius: 50%;
+            opacity: 0.5;
+        }
+
+        .section p {
+            font-size: 1.4rem;
+            line-height: 1.6;
+            color: var(--primary);
+        }
+
+        .highlight {
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .try-it-section {
+            background: var(--primary);
+            color: white;
+            padding: 2.5rem;
+            border-radius: 20px;
+            margin-top: auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 15px 35px rgba(42, 45, 52, 0.2);
+        }
+
+        .try-it-content h2 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            font-family: 'Playfair Display', serif;
+        }
+
+        .try-it-content p {
+            font-size: 1.3rem;
+            opacity: 0.9;
+        }
+
+        .try-it-icon {
+            width: 80px;
+            height: 80px;
+            background: var(--accent);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+        }
+
+        footer {
+            margin-top: 2.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .team {
+            font-size: 1.1rem;
+            color: var(--text-light);
+        }
+
+        .team strong {
+            color: var(--primary);
+        }
+
+        .course {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--primary);
+            background: rgba(0,0,0,0.05);
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+        }
+
+        /* Custom styling for specific sections */
+        .problem-section {
+            border-left-color: var(--primary);
+        }
+        .problem-section .section-title::before {
+            background-color: var(--primary);
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-shape-1"></div>
+    <div class="bg-shape-2"></div>
+
+    <div class="container">
+        <header>
+            <div class="logo-area">
+                <h1>Orbit</h1>
+                <div class="tagline">AI-Powered Interactive Travel Guide</div>
+            </div>
+        </header>
+
+        <div class="content-grid">
+            <div class="section problem-section">
+                <div class="section-title">The Problem</div>
+                <p>Map and review apps show <strong>too much undifferentiated choice</strong>. Travelers and locals struggle to find interesting, context-rich points of interest in real time, often missing hidden gems while endlessly scrolling through generic lists.</p>
+            </div>
+
+            <div class="section">
+                <div class="section-title">What It Is</div>
+                <p>Orbit helps you explore a city on your own terms. By combining a map pin with a short taste profile, it curates a small set of places you might actually visit—each with a clear <span class="highlight">"why you"</span> explanation.<br><br>Unlike static map apps, Orbit adapts to your location and interests to proactively surface relevant places and provides a <strong>conversational, context-aware audio tour guide experience</strong> as you explore.</p>
+            </div>
+        </div>
+
+        <div class="try-it-section">
+            <div class="try-it-content">
+                <h2>Try it yourself!</h2>
+                <p>Grab the demo device on the table to drop a pin, set your mood, and start exploring.</p>
+            </div>
+            <div class="try-it-icon">
+                📍
+            </div>
+        </div>
+
+        <footer>
+            <div class="team">
+                <strong>Team:</strong> Kieran Greeley, GP Hora, Rosalie Wessels, Daniel Louie, Iker Mendiburu
+            </div>
+            <div class="course">
+                CSEN 174
+            </div>
+        </footer>
+    </div>
+</body>
+</html>
