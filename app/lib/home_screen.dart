@@ -109,9 +109,12 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.inactive) {
-      _wakeRestartTimer?.cancel();
-      unawaited(_speech.stop());
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.detached) {
+      unawaited(
+        _releaseVoiceResources(updateUi: state != AppLifecycleState.detached),
+      );
       return;
     }
     if (state == AppLifecycleState.resumed &&
@@ -134,6 +137,30 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen>
           ? 'Listening — say "over" when you are done.'
           : 'Say "Orbit" to ask a question, then "over" when finished.';
     });
+  }
+
+  Future<void> _releaseVoiceResources({bool updateUi = true}) async {
+    _wakeRestartTimer?.cancel();
+    _speakGeneration++;
+    _conversationActive = false;
+    _wakeListenArmed = false;
+    _startingWakeListen = false;
+    _wakeSession.reset();
+
+    if (updateUi && mounted) {
+      setState(() {
+        _isListening = false;
+        _isSpeaking = false;
+        _sessionBusy = false;
+        _liveTranscript = null;
+      });
+    }
+
+    await _speech.stop();
+    await _speech.cancel();
+    await _tts.stop();
+    await OpenRouterTts.stop();
+    await HeadsetMediaBridge.instance.releaseAudioSession();
   }
 
   void _scheduleWakeListenRestart() {
@@ -297,14 +324,7 @@ class _OrbitHomeScreenState extends State<OrbitHomeScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _wakeRestartTimer?.cancel();
-    unawaited(() async {
-      await HeadsetMediaBridge.instance.disarm();
-      await _tts.stop();
-      await OpenRouterTts.stop();
-      await _speech.stop();
-      await _speech.cancel();
-    }());
+    unawaited(_releaseVoiceResources(updateUi: false));
     _chatScrollController.dispose();
     _textInputController.dispose();
     _textInputFocus.dispose();

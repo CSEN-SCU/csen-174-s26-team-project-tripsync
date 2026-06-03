@@ -100,6 +100,19 @@ class HeadsetMediaBridge {
     _programmaticStop = false;
   }
 
+  /// Fully releases the app's audio session when leaving the foreground.
+  Future<void> releaseAudioSession() async {
+    if (kIsWeb) return;
+
+    await disarm();
+    try {
+      final session = await AudioSession.instance;
+      await session.setActive(false);
+    } catch (e, st) {
+      developer.log('$e', name: 'Orbit.audio_session_release', stackTrace: st);
+    }
+  }
+
   void notifyExternalPause() {
     if (!_armed || _programmaticStop) return;
     developer.log('Headset pause detected', name: 'Orbit.headset_pause');
