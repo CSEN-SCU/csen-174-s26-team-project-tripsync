@@ -7,7 +7,7 @@ Orbit is an audio-first travel companion that recommends nearby points of intere
 ## Demo and report
 
 - **Live/TestFlight URL:** <https://testflight.apple.com/join/4t68t4bB>
-- **Demo video:** **NEEDS TEAM LINK** - paste the final demo video URL here.
+- **Demo video:** <https://www.youtube.com/watch?v=5G5MvHjuw34>
 - **Technical report:** [TECHNICAL_REPORT.md](TECHNICAL_REPORT.md)
 - **Summary card:** [summary-card.pdf](summary-card.pdf)
 - **Screenshot/GIF:** **NEEDS TEAM FILE** - add a current product screenshot or short GIF and embed it here.
