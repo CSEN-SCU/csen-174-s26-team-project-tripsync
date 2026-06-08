@@ -10,7 +10,17 @@ Orbit is an audio-first travel companion that recommends nearby points of intere
 - **Demo video:** <https://www.youtube.com/watch?v=5G5MvHjuw34>
 - **Technical report:** [TECHNICAL_REPORT.md](TECHNICAL_REPORT.md)
 - **Summary card:** [summary-card.pdf](summary-card.pdf)
-- **Screenshot/GIF:** **NEEDS TEAM FILE** - add a current product screenshot or short GIF and embed it here.
+
+## Screenshots
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/LoginScreen.PNG" width="200" alt="Sign-in screen with Google login"><br/>Sign in</td>
+    <td align="center"><img src="docs/screenshots/HomePageWithOrbitSpeaking.PNG" width="200" alt="Home screen with map and Orbit narrating a nearby POI"><br/>Orbit narrating</td>
+    <td align="center"><img src="docs/screenshots/HomePageWithUserSpeaking.PNG" width="200" alt="Home screen listening for a voice follow-up question"><br/>Voice follow-up</td>
+    <td align="center"><img src="docs/screenshots/HomePageWithChatInterface.PNG" width="200" alt="Home screen keyboard chat asking about museum hours"><br/>Keyboard chat</td>
+  </tr>
+</table>
 
 ## Team
 

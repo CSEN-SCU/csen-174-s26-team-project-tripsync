@@ -2,7 +2,7 @@
 
 Orbit · Kieran Greeley, GP Hora, Rosalie Wessels, Daniel Louie, Iker Mendiburu · Spring 2026
 
-> Export note: this Markdown file is the source for the graded PDF. Before submitting, export it to PDF with 11 pt body text and 1 inch margins. Items marked **NEEDS TEAM LINK/FILE** are intentionally visible placeholders for artifacts that were not present in the repository at drafting time.
+> Export note: this Markdown file is the source for the graded PDF. Before submitting, export it to PDF with 11 pt body text and 1 inch margins.
 
 ## 1. Product vision and evolution
 
@@ -14,9 +14,9 @@ The current prototype still serves travelers exploring on foot, but the product 
 2. **Fully proactive pings were deferred.** Background geofencing and fatigue controls stayed in the target architecture, while Sprint 2 shipped a foreground voice session first.
 3. **Natural onboarding became interest chips for v1.** Conversational onboarding remained a goal, but tap-to-select interests gave the team a shippable path through Firebase and Firestore.
 
-The W2/W3 persona/storyboard artifact is not currently committed as a standalone file. **NEEDS TEAM FILE:** add or link the W2 persona/storyboard artifact, preferably under `docs/`, then cite it here. The product still serves that likely persona: a traveler who wants less planning and fewer choices, but now by listening and talking rather than scrolling.
+The W3 storyboard ([`docs/CSEN 174 Storyboard Daniel L.pdf`](docs/CSEN%20174%20Storyboard%20Daniel%20L.pdf)) centers on the persona "Marissa," a Santa Clara University freshman who is outdoorsy, comfortable with everyday tech, and wants to fill free time with spontaneous exploration without being glued to her phone. The storyboard does not mirror the current app exactly: the team modified flows as the prototype evolved, and the map-first framing in the storyboard gave way to the audio-first loop described above. The product still serves that persona: a traveler who wants less planning and fewer choices, but now by listening and talking rather than scrolling.
 
-**Section references:** [`product-vision.md`](product-vision.md), [`docs/architecture-retrospective.md`](docs/architecture-retrospective.md), **NEEDS TEAM FILE:** W2/W3 storyboard or persona artifact.
+**Section references:** [`product-vision.md`](product-vision.md), [`docs/architecture-retrospective.md`](docs/architecture-retrospective.md), [`docs/CSEN 174 Storyboard Daniel L.pdf`](docs/CSEN%20174%20Storyboard%20Daniel%20L.pdf).
 
 ## 2. Architecture evolution
 
