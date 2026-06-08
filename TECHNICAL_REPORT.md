@@ -22,93 +22,172 @@ The W2/W3 persona/storyboard artifact is not currently committed as a standalone
 
 ### W4 initial architecture
 
-W4 described Orbit as a background, location-triggered voice loop. The planned app would detect location, query curated POIs, rank candidates, speak a proactive ping, handle speech follow-ups through an LLM, and open maps for directions ([`architecture/architecture.md`](architecture/architecture.md)).
+W4 described Orbit as a background, location-triggered voice loop. The planned app would detect location, query curated POIs, rank candidates, speak a proactive ping, handle speech follow-ups through an LLM, and open maps for directions. The diagram below is the W4 container diagram from [`architecture/architecture.md`](architecture/architecture.md).
 
 ```mermaid
-flowchart LR
-    traveler(["Traveler"])
-    app["Orbit Flutter app"]
-    location["Location Engine"]
-    ranker["POI Ranker"]
-    convo["Conversation Manager"]
-    voice["Voice Interface"]
-    db[("Cloud DB")]
-    llm[["LLM API"]]
-    maps[["Maps app"]]
-    os[["OS audio/location"]]
-
-    traveler --> voice
-    app --> location
-    location --> db
-    location --> ranker
-    ranker --> convo
-    convo <--> voice
-    convo --> llm
-    convo --> maps
-    voice --> os
+C4Container
+    title Containers — Orbit (Flutter) and dependencies
+    Person(traveler, "Traveler", "Explores on foot; hears pings and replies by voice")
+    SystemDb_Ext(db, "Cloud DB", "Curated geo POIs, accounts, preferences")
+    System_Ext(LLM, "LLM API", "Conversation AI")
+    System_Ext(maps, "Maps app", "External navigation")
+    System_Boundary(app, "Orbit — Flutter mobile app") {
+        Container(location, "Location Engine", "geolocator + geofencing", "Background position; proximity triggers; loads nearby POIs from DB")
+        Container(ranker, "POI Ranker", "Dart", "Scores POIs vs interests; cooldowns and caps")
+        Container(convo, "Conversation Manager", "Dart", "Prompts, session state, preference updates; calls LLM")
+        Container(voice, "Voice Interface", "flutter_tts, speech_to_text", "Audio prompts; transcribes user speech")
+    }
+    Rel(traveler, voice, "Hears TTS; speaks replies")
+    Rel(location, db, "Geo queries for nearby POIs")
+    Rel(location, ranker, "Candidate POIs for current area")
+    Rel(ranker, db, "Read preferences for scoring")
+    Rel(ranker, convo, "Top POI / ping decision")
+    Rel(convo, voice, "Text to speak")
+    Rel(voice, convo, "Transcribed user text")
+    Rel(convo, LLM, "LLM request / response")
+    Rel(convo, db, "Persist inferred preferences")
+    Rel(convo, maps, "Launch directions when user asks")
 ```
 
 ### W8 revised architecture
 
-By W8/Sprint 2, the team had a foreground app rather than the full proactive loop. The revised architecture kept Firebase and LLM integration, but the live voice path moved into the Flutter app's home screen. Repo packages for the location engine, voice interface, and LLM integration existed, but several were not yet wired into the primary experience.
+By W8/Sprint 2, the team had a foreground app rather than the full proactive loop. The revised architecture kept Firebase and LLM integration, but the live voice path moved into the Flutter app's home screen. Repo packages for the location engine, voice interface, and LLM integration existed, but several were not yet wired into the primary experience. The diagram below is the W8 current-state container diagram from [`docs/architecture-retrospective.md`](docs/architecture-retrospective.md).
 
 ```mermaid
 flowchart LR
-    traveler(["Traveler"])
-    app["Flutter app foreground session"]
-    auth["Firebase Auth"]
-    prefs["Firestore preferences"]
-    home["Home screen voice loop"]
-    repo["PoiRepository"]
-    narrator["GroqPoiNarrator"]
-    tts["OpenRouter / OS TTS"]
-    stt["speech_to_text"]
-    firestore[("Cloud Firestore")]
-    groq[["Groq chat/search"]]
-    osm[["OpenStreetMap tiles"]]
+    traveler(["Traveler<br/>signed-in or guest"])
 
-    traveler --> app
-    app --> auth
-    app --> prefs
-    app --> home
-    home --> repo --> firestore
-    home --> narrator --> groq
+    subgraph app["Orbit Flutter app — wired runtime"]
+        direction TB
+        main["App shell + AuthGate<br/>app/lib/main.dart"]
+        auth["AuthService<br/>app/lib/auth/auth_service.dart"]
+        prefs["FirestorePreferencesService<br/>app/lib/onboarding/"]
+        poi_repo["PoiRepository<br/>app/lib/poi/poi_repository.dart"]
+        home["Home screen + voice loop<br/>app/lib/home_screen.dart"]
+        narrator["GroqPoiNarrator<br/>app/lib/groq_poi_narrator.dart"]
+        tts["OpenRouterTts<br/>app/lib/openrouter_tts.dart"]
+        loc["LocationService<br/>app/lib/location_service.dart"]
+        llm_tab["LLM dev tab<br/>app/lib/llm_integration_screen.dart"]
+    end
+
+    subgraph stubs["Repo packages — NOT on voice path"]
+        direction TB
+        llm_pkg["llm_integration<br/>used by dev tab only"]
+        voice_pkg["voice_interface stub<br/>throws UnimplementedError"]
+        loc_pkg["location_engine<br/>algorithm only, no Firestore adapter"]
+    end
+
+    subgraph admin["Admin tooling — Node, off-device"]
+        direction TB
+        osm_gen["OSM POI generator<br/>geo-poi-database/"]
+        seeder["POI seeder<br/>geo-poi-database/seed_pois.js"]
+    end
+
+    fb_auth[["Firebase Auth<br/>project orbit-86c27"]]
+    firestore[("Cloud Firestore")]
+    groq_chat[["Groq chat / Compound"]]
+    openrouter_tts_ext[["OpenRouter TTS"]]
+    osm_tiles[["OpenStreetMap tiles"]]
+    overpass[["Overpass API"]]
+    os[["Mobile OS<br/>STT, fallback TTS, GPS"]]
+
+    traveler --> main
+    traveler --> home
+
+    main --> fb_auth
+    auth --> fb_auth
+    auth --> firestore
+    prefs --> firestore
+
+    home --> loc
+    loc --> os
+    home --> poi_repo
+    poi_repo --> firestore
+    home --> narrator
+    narrator --> groq_chat
     home --> tts
-    home --> stt
-    home --> osm
+    tts --> openrouter_tts_ext
+    home --> os
+    home --> osm_tiles
+    llm_tab --> llm_pkg
+    llm_pkg --> groq_chat
+
+    osm_gen --> overpass
+    osm_gen -.-> seeder
+    seeder --> firestore
+
+    classDef ext fill:#e8eef7,stroke:#3a5a8a,color:#111
+    classDef stub fill:#fff7e6,stroke:#b88a4a,stroke-dasharray: 5 3,color:#111
+    classDef wired fill:#e6f4ea,stroke:#1f7a36,color:#111
+    classDef person fill:#fde7f3,stroke:#a3296b,color:#111
+
+    class traveler person
+    class fb_auth,firestore,groq_chat,openrouter_tts_ext,osm_tiles,overpass,os ext
+    class llm_pkg,voice_pkg,loc_pkg stub
+    class main,auth,prefs,poi_repo,home,narrator,tts,loc,llm_tab,seeder,osm_gen wired
 ```
 
 ### Current architecture at code freeze
 
-The current code freeze is still a consolidated Flutter app in `app/`, with supporting packages and admin tooling around it. Recent commits added the Orbit branding, wake-word interaction, OpenRouter TTS, settings/preferences, and crash fixes. The seams are now clear: `AuthGate` routes users through sign-in and onboarding, `OrbitHomeScreen` coordinates location/POI/voice/chat, `PoiRepository` reads Firestore by geohash and tags, and `GroqPoiNarrator` produces grounded narration and follow-up answers.
+The current code freeze is still close to the W8 shape: a consolidated Flutter app in `app/`, with supporting packages and admin tooling around it. The main difference is that saved interests now flow through `AuthGate` into `OrbitHomeScreen`, the settings/preferences screen lets users edit interests, wake-word handling is part of the live voice path, and OpenRouter is the cloud TTS provider. The seams are now clear: `AuthGate` routes users through sign-in and onboarding, `OrbitHomeScreen` coordinates location/POI/voice/chat, `PoiRepository` reads Firestore by geohash and tags, and `GroqPoiNarrator` produces grounded narration and follow-up answers.
 
 ```mermaid
 flowchart LR
-    user(["Signed-in or guest user"])
-    main["App shell + AuthGate<br/>app/lib/main.dart"]
-    onboarding["Interest onboarding<br/>app/lib/onboarding/"]
-    home["OrbitHomeScreen<br/>app/lib/home_screen.dart"]
-    loc["LocationService<br/>app/lib/location_service.dart"]
-    poi["PoiRepository<br/>app/lib/poi/poi_repository.dart"]
-    narr["GroqPoiNarrator<br/>app/lib/groq_poi_narrator.dart"]
-    speech["Wake word + STT/TTS<br/>voice-interface + Flutter plugins"]
-    tts["OpenRouterTts<br/>app/lib/openrouter_tts.dart"]
-    fire[("Firebase Auth + Firestore")]
-    groq[["Groq API"]]
-    openrouter[["OpenRouter TTS"]]
-    osm[["OSM tiles"]]
-    admin["POI seed tooling<br/>geo-poi-database/"]
+    traveler(["Traveler<br/>signed-in or guest"])
 
-    user --> main
-    main --> onboarding --> fire
+    subgraph app["Orbit Flutter app — current code freeze"]
+        direction TB
+        main["App shell + AuthGate<br/>app/lib/main.dart"]
+        auth["AuthService<br/>app/lib/auth/auth_service.dart"]
+        onboarding["Interest onboarding<br/>app/lib/onboarding/preferences_onboarding_screen.dart"]
+        prefs["Preferences + settings<br/>app/lib/onboarding/ + app/lib/preferences/"]
+        home["OrbitHomeScreen<br/>app/lib/home_screen.dart"]
+        loc["LocationService<br/>app/lib/location_service.dart"]
+        poi_repo["PoiRepository<br/>app/lib/poi/poi_repository.dart"]
+        narrator["GroqPoiNarrator<br/>app/lib/groq_poi_narrator.dart"]
+        wake["WakeWordSession<br/>voice-interface/"]
+        headset["HeadsetMediaBridge<br/>app/lib/headset_media_bridge.dart"]
+        cloud_tts["OpenRouterTts<br/>app/lib/openrouter_tts.dart"]
+    end
+
+    subgraph admin["Admin tooling — Node, off-device"]
+        osm_gen["OSM POI generator<br/>geo-poi-database/generate_pois_from_osm.js"]
+        seeder["POI seeder<br/>geo-poi-database/seed_pois.js"]
+    end
+
+    fb_auth[["Firebase Auth"]]
+    firestore[("Cloud Firestore<br/>users + pois")]
+    groq_chat[["Groq chat / Compound"]]
+    openrouter[["OpenRouter TTS"]]
+    os[["Mobile OS<br/>GPS, STT, fallback TTS, audio session"]]
+    osm_tiles[["OpenStreetMap tiles"]]
+    overpass[["Overpass API"]]
+
+    traveler --> main
+    main --> auth --> fb_auth
+    main --> onboarding
+    onboarding --> prefs
+    prefs --> firestore
     main --> home
-    home --> loc
-    home --> poi --> fire
-    home --> narr --> groq
-    home --> speech
-    home --> tts --> openrouter
-    home --> osm
-    admin --> fire
+    home --> prefs
+    home --> loc --> os
+    home --> poi_repo --> firestore
+    home --> narrator --> groq_chat
+    home --> wake
+    home --> headset --> os
+    home --> cloud_tts --> openrouter
+    home --> os
+    home --> osm_tiles
+    osm_gen --> overpass
+    osm_gen -.-> seeder --> firestore
+
+    classDef ext fill:#e8eef7,stroke:#3a5a8a,color:#111
+    classDef wired fill:#e6f4ea,stroke:#1f7a36,color:#111
+    classDef person fill:#fde7f3,stroke:#a3296b,color:#111
+
+    class traveler person
+    class fb_auth,firestore,groq_chat,openrouter,os,osm_tiles,overpass ext
+    class main,auth,onboarding,prefs,home,loc,poi_repo,narrator,wake,headset,cloud_tts,seeder,osm_gen wired
 ```
 
 Architectural decisions with repo evidence:
