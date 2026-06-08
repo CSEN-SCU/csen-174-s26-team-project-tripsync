@@ -135,9 +135,9 @@ Major feature entry points:
 - Cloud TTS: [`app/lib/openrouter_tts.dart`](app/lib/openrouter_tts.dart).
 - POI admin seed pipeline: [`geo-poi-database/`](geo-poi-database/).
 
-What it does not do yet: true background geofencing, proactive ping fatigue controls, maps deep links, inferred preference write-back after conversations, production-safe API key proxying, and broad automated app-level integration tests. No demo-night tag exists in the repo yet. **NEEDS TEAM TAG:** create a `demo-night` or `final-demo` git tag on the commit used for the video. **NEEDS TEAM LINK:** add the final demo video URL here and in the README.
+What it does not do yet: true background geofencing, proactive ping fatigue controls, maps deep links, inferred preference write-back after conversations, production-safe API key proxying, and broad automated app-level integration tests. The demo snapshot is tagged as [`final-demo`](https://github.com/CSEN-SCU/csen-174-s26-team-project-tripsync/tree/final-demo). **NEEDS TEAM LINK:** add the final demo video URL here and in the README.
 
-**Section references:** live TestFlight URL in [`docs/sprint-1-cicd.md`](docs/sprint-1-cicd.md), current code-freeze commit `20a9049`, **NEEDS TEAM TAG:** demo-night tagged commit, **NEEDS TEAM LINK:** demo video.
+**Section references:** live TestFlight URL in [`docs/sprint-1-cicd.md`](docs/sprint-1-cicd.md), current code-freeze commit `20a9049`, demo snapshot tag [`final-demo`](https://github.com/CSEN-SCU/csen-174-s26-team-project-tripsync/tree/final-demo), **NEEDS TEAM LINK:** demo video.
 
 ## 4. Engineering process: testing, security, deployment
 
