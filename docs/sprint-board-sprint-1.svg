@@ -1,0 +1,128 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675" role="img" aria-labelledby="title desc">
+  <title id="title">Orbit Kanban sprint board evidence</title>
+  <desc id="desc">A reconstructed artifact from the supplied Orbit Kanban screenshot showing backlog, to do, in progress, and done columns with representative sprint cards.</desc>
+  <rect width="1200" height="675" fill="#0d1117"/>
+  <text x="24" y="38" fill="#e6edf3" font-family="Arial, sans-serif" font-size="24" font-weight="700">Orbit Kanban</text>
+  <text x="24" y="68" fill="#8b949e" font-family="Arial, sans-serif" font-size="14">Sprint board screenshot evidence reconstructed from team-provided image</text>
+
+  <defs>
+    <style>
+      .col { fill: #010409; stroke: #30363d; stroke-width: 1.5; }
+      .card { fill: #161b22; stroke: #30363d; stroke-width: 1.2; }
+      .heading { fill: #f0f6fc; font: 700 15px Arial, sans-serif; }
+      .count { fill: #8b949e; font: 12px Arial, sans-serif; }
+      .cardtext { fill: #e6edf3; font: 13px Arial, sans-serif; }
+      .meta { fill: #8b949e; font: 10px Arial, sans-serif; }
+    </style>
+  </defs>
+
+  <g transform="translate(12 96)">
+    <rect class="col" x="0" y="0" width="276" height="540" rx="8"/>
+    <circle cx="20" cy="24" r="6" fill="none" stroke="#3fb950" stroke-width="2"/>
+    <text class="heading" x="36" y="29">Backlog</text>
+    <text class="count" x="104" y="29">5</text>
+
+    <g transform="translate(12 58)">
+      <rect class="card" width="252" height="62" rx="6"/>
+      <text class="meta" x="14" y="19">csen-174-s26-team-project-tripsync #5</text>
+      <text class="cardtext" x="14" y="42">Set up backend</text>
+    </g>
+    <g transform="translate(12 136)">
+      <rect class="card" width="252" height="62" rx="6"/>
+      <text class="meta" x="14" y="19">csen-174-s26-team-project-tripsync #18</text>
+      <text class="cardtext" x="14" y="42">Get app to speak text through headphones</text>
+    </g>
+    <g transform="translate(12 214)">
+      <rect class="card" width="252" height="62" rx="6"/>
+      <text class="meta" x="14" y="19">csen-174-s26-team-project-tripsync #19</text>
+      <text class="cardtext" x="14" y="42">Capture response through headphones</text>
+    </g>
+    <g transform="translate(12 292)">
+      <rect class="card" width="252" height="62" rx="6"/>
+      <text class="meta" x="14" y="19">csen-174-s26-team-project-tripsync #20</text>
+      <text class="cardtext" x="14" y="42">Transcribe response</text>
+    </g>
+    <g transform="translate(12 370)">
+      <rect class="card" width="252" height="62" rx="6"/>
+      <text class="meta" x="14" y="19">csen-174-s26-team-project-tripsync #21</text>
+      <text class="cardtext" x="14" y="42">Get LLM to speak response to user's response</text>
+    </g>
+  </g>
+
+  <g transform="translate(306 96)">
+    <rect class="col" x="0" y="0" width="276" height="540" rx="8"/>
+    <circle cx="20" cy="24" r="6" fill="none" stroke="#2f81f7" stroke-width="2"/>
+    <text class="heading" x="36" y="29">To Do</text>
+    <text class="count" x="82" y="29">1</text>
+
+    <g transform="translate(12 58)">
+      <rect class="card" width="252" height="62" rx="6"/>
+      <text class="meta" x="14" y="19">csen-174-s26-team-project-tripsync #33</text>
+      <text class="cardtext" x="14" y="42">Update UI to better reflect UX vision</text>
+    </g>
+  </g>
+
+  <g transform="translate(600 96)">
+    <rect class="col" x="0" y="0" width="276" height="540" rx="8"/>
+    <circle cx="20" cy="24" r="6" fill="none" stroke="#d29922" stroke-width="2"/>
+    <text class="heading" x="36" y="29">In progress</text>
+    <text class="count" x="124" y="29">3 / 5</text>
+
+    <g transform="translate(12 58)">
+      <rect class="card" width="252" height="86" rx="6"/>
+      <text class="meta" x="14" y="19">csen-174-s26-team-project-tripsync #12</text>
+      <text class="cardtext" x="14" y="42">Speech ” text (STT + TTS)</text>
+      <rect x="14" y="62" width="180" height="7" rx="3" fill="#3b2e5f"/>
+      <rect x="14" y="62" width="0" height="7" rx="3" fill="#8957e5"/>
+      <text class="count" x="206" y="70">0%</text>
+    </g>
+    <g transform="translate(12 160)">
+      <rect class="card" width="252" height="62" rx="6"/>
+      <text class="meta" x="14" y="19">csen-174-s26-team-project-tripsync #14</text>
+      <text class="cardtext" x="14" y="42">Location Tracking / Accessing Database</text>
+    </g>
+    <g transform="translate(12 238)">
+      <rect class="card" width="252" height="62" rx="6"/>
+      <text class="meta" x="14" y="19">csen-174-s26-team-project-tripsync #9</text>
+      <text class="cardtext" x="14" y="42">LLM API: text in / text out</text>
+    </g>
+  </g>
+
+  <g transform="translate(894 96)">
+    <rect class="col" x="0" y="0" width="294" height="540" rx="8"/>
+    <circle cx="20" cy="24" r="6" fill="none" stroke="#db6d28" stroke-width="2"/>
+    <text class="heading" x="36" y="29">Done</text>
+    <text class="count" x="78" y="29">7</text>
+
+    <g transform="translate(12 58)">
+      <rect class="card" width="270" height="62" rx="6"/>
+      <text class="meta" x="14" y="19">csen-174-s26-team-project-tripsync #8</text>
+      <text class="cardtext" x="14" y="42">Individual Websites and Demos</text>
+    </g>
+    <g transform="translate(12 136)">
+      <rect class="card" width="270" height="62" rx="6"/>
+      <text class="meta" x="14" y="19">csen-174-s26-team-project-tripsync #6</text>
+      <text class="cardtext" x="14" y="42">Make the C4 diagrams</text>
+    </g>
+    <g transform="translate(12 214)">
+      <rect class="card" width="270" height="62" rx="6"/>
+      <text class="meta" x="14" y="19">csen-174-s26-team-project-tripsync #7</text>
+      <text class="cardtext" x="14" y="42">Discussion on where we see the project heading</text>
+    </g>
+    <g transform="translate(12 292)">
+      <rect class="card" width="270" height="62" rx="6"/>
+      <text class="meta" x="14" y="19">csen-174-s26-team-project-tripsync #15</text>
+      <text class="cardtext" x="14" y="42">Set up POI database (geo)</text>
+    </g>
+    <g transform="translate(12 370)">
+      <rect class="card" width="270" height="62" rx="6"/>
+      <text class="meta" x="14" y="19">csen-174-s26-team-project-tripsync #10</text>
+      <text class="cardtext" x="14" y="42">Set up Auth: sign-up / sign-in</text>
+    </g>
+    <g transform="translate(12 448)">
+      <rect class="card" width="270" height="62" rx="6"/>
+      <text class="meta" x="14" y="19">csen-174-s26-team-project-tripsync #13</text>
+      <text class="cardtext" x="14" y="42">Set up Flutter Repo</text>
+    </g>
+  </g>
+</svg>

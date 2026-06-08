@@ -167,13 +167,15 @@ Successes:
 
 Setbacks:
 
-1. **Cards were too broad in Sprint 1.** The early signal was that "component" cards hid several smaller tasks, making progress hard to see. The team committed to breaking Kanban work into sub-issues in Sprint 2, but the card links were not committed. **NEEDS TEAM LINK:** Sprint board URL or screenshots for the broad Sprint 1 cards.
+![Sprint 1 Orbit Kanban board evidence](docs/sprint-board-sprint-1.svg)
+
+1. **Cards were too broad in Sprint 1.** The early signal was that "component" cards hid several smaller tasks, making progress hard to see: the Sprint 1 board grouped work into large cards such as "Speech <-> text (STT + TTS)," "Location Tracking / Accessing Database," and "LLM API: text in / text out" ([`docs/sprint-board-sprint-1.svg`](docs/sprint-board-sprint-1.svg)). The team committed to breaking Kanban work into sub-issues in Sprint 2.
 2. **Too much landed in `home_screen.dart`.** The team integrated quickly, but the home screen became the voice loop, map preview, POI selection, TTS/STT, and session state owner. The early signal was repeated merge pressure on one file. Next time, the team would extract Conversation Manager, Voice Interface, and POI selection earlier ([`app/lib/home_screen.dart`](app/lib/home_screen.dart), [`docs/architecture-retrospective.md`](docs/architecture-retrospective.md)).
 3. **Jolli did not fit the repo workflow.** The team tried to connect it for process tracking, but the docs did not match the app structure, so syncing became overhead. Next time, the team would either commit screenshots/exported board artifacts or keep all planning evidence in GitHub issues and project boards ([`docs/sprint-1-testing.md`](docs/sprint-1-testing.md), [`docs/sprint-1-retro.md`](docs/sprint-1-retro.md)).
 
 AI tools pulled their weight for setup-heavy and integration-heavy work: CI, Flutter/Firebase friction, Groq prompting, and debugging voice behavior. The team had to override or unwind AI output when it wrote tests too close to fake internals, when architecture prose drifted ahead of runtime reality, and when generated solutions assumed clean module boundaries that the sprint branch did not yet have.
 
-**Section references:** [`docs/sprint-1-retro.md`](docs/sprint-1-retro.md), [`docs/sprint-2-retro.md`](docs/sprint-2-retro.md), [`docs/architecture-retrospective.md`](docs/architecture-retrospective.md), [`app/lib/home_screen.dart`](app/lib/home_screen.dart), **NEEDS TEAM LINK:** Sprint board URL/screenshots.
+**Section references:** [`docs/sprint-1-retro.md`](docs/sprint-1-retro.md), [`docs/sprint-2-retro.md`](docs/sprint-2-retro.md), [`docs/architecture-retrospective.md`](docs/architecture-retrospective.md), [`docs/sprint-board-sprint-1.svg`](docs/sprint-board-sprint-1.svg), [`app/lib/home_screen.dart`](app/lib/home_screen.dart).
 
 ## 6. Future work
 
